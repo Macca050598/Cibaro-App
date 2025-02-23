@@ -26,15 +26,37 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
   const options = type === "dietary" ? availableDietaryPreferences : availableAllergiesPreferences;
 
   const handleToggle = (option) => {
-    setLocalPreferences(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(option)) {
-        newSet.delete(option);
-      } else {
+    if (type === "dietary") {
+      setLocalPreferences(prev => {
+        const newSet = new Set(prev);
+        
+        // If unchecking any option, just remove it
+        if (newSet.has(option)) {
+          newSet.delete(option);
+          return newSet;
+        }
+
+        // If checking a new option, clear all other dietary preferences first
+        newSet.delete('Vegan');
+        newSet.delete('Vegetarian');
+        newSet.delete('Pescatarian');
+        
+        // Then add the new option
         newSet.add(option);
-      }
-      return newSet;
-    });
+        return newSet;
+      });
+    } else {
+      // Handle allergies normally
+      setLocalPreferences(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(option)) {
+          newSet.delete(option);
+        } else {
+          newSet.add(option);
+        }
+        return newSet;
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -47,7 +69,6 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-         
             <Text style={styles.modalTitle}>{type === "dietary" ? "Dietary" : "Allergies"} Preferences</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialIcons name="close" size={24} color="#666" />
@@ -60,13 +81,30 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
                 key={option}
                 style={styles.modalItem}
                 onPress={() => handleToggle(option)}
+                disabled={type === "dietary" && 
+                  localPreferences.size > 0 && 
+                  !localPreferences.has(option)}
               >
                 <Checkbox
                   value={localPreferences.has(option)}
                   onValueChange={() => handleToggle(option)}
                   color={Colors.PRIMARY}
+                  disabled={type === "dietary" && 
+                    localPreferences.size > 0 && 
+                    !localPreferences.has(option)}
                 />
-                <Text style={styles.modalItemText}>{option}</Text>
+                <Text style={[
+                  styles.modalItemText,
+                  type === "dietary" && 
+                    localPreferences.size > 0 && 
+                    !localPreferences.has(option) && 
+                    styles.disabledText
+                ]}>
+                  {option}
+                  {type === "dietary" && option === "Vegan" && (
+                    <Text style={styles.helperText}> (includes vegetarian)</Text>
+                  )}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -755,5 +793,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
 })

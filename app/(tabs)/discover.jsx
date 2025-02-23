@@ -9,30 +9,6 @@ import Swiper from 'react-native-deck-swiper'
 import { useRouter } from 'expo-router'
 const { width } = Dimensions.get('window')
 
-const CURATED_MEAL_IDS = [
-  '52772', // Teriyaki Chicken Casserole
-  '52771', // Spicy Arrabiata Penne
-  '52770', // Spaghetti Carbonara
-  '52775', // Beef Wellington
-  '52773', // Honey Teriyaki Salmon
-  '52765', // Chicken Enchilada Casserole
-  '52785', // Dal fry
-  '52774', // Pad See Ew
-  '52764', // Mediterranean Pasta Salad
-  '52767', // Baked salmon with fennel & tomatoes
-  '52855', // Banana Pancakes
-  '52953', // Beef Stroganoff
-  '52898', // Chicken Marengo
-  '52893', // Apple & Blackberry Crumble
-  '52768', // Apple Frangipan Tart
-  '52769', // Kapsalon
-  '52863', // Shakshuka
-  '52949', // Sweet and Sour Pork
-  '52887', // Kedgeree
-  '52891', // Tuna Nicoise
-  // Add more popular meals as needed
-];
-
 export default function Discover() {
   const [meals, setMeals] = useState([])
   const [matchCount, setMatchCount] = useState(0)
@@ -89,78 +65,99 @@ export default function Discover() {
       const userField = isUser1 ? 'user1' : 'user2';
       const userPreferences = houseData.users[userField]?.mealPreferences || { liked: [], disliked: [] };
       
-      // Shuffle the meal IDs array
-      const shuffledIds = [...CURATED_MEAL_IDS]
-        .sort(() => Math.random() - 0.5)
-        .filter(id => !userPreferences.liked.includes(id) && !userPreferences.disliked.includes(id));
+      // Get user's dietary preferences
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data();
+      const dietaryPreferences = userData?.dietaryPreferences || {};
+
+      console.log('User Dietary Preferences:', dietaryPreferences); // Debug log
+
+      // Define main meal categories
+      const mainMealCategories = [
+        'Beef', 'Chicken', 'Lamb', 'Pork', 'Seafood', 'Pasta', 
+        'Vegetarian', 'Vegan', 'Goat', 'Miscellaneous', 'Side'
+      ];
+
+      // Fetch all meals from the API
+      const response = await fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=');
+      const data = await response.json();
       
-      // Fetch meals by ID
-      const mealPromises = shuffledIds.slice(0, 15).map(id => 
-        fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`).then(res => res.json())
-      );
-      
-      const mealResults = await Promise.all(mealPromises);
-      
-      const formattedMeals = mealResults
-        .filter(result => result.meals && result.meals[0]) // Ensure valid response
-        .map(result => ({
-          id: result.meals[0].idMeal,
-          name: result.meals[0].strMeal,
-          image: result.meals[0].strMealThumb,
-          category: result.meals[0].strCategory,
-          ingredients: Object.keys(result.meals[0])
-            .filter(key => key.startsWith('strIngredient') && result.meals[0][key])
+      if (!data.meals) {
+        console.error('No meals returned from API');
+        return;
+      }
+
+      // Filter and format meals
+      const formattedMeals = data.meals
+        .filter(meal => {
+          // Skip if already liked or disliked
+          if (userPreferences.liked.includes(meal.idMeal) || 
+              userPreferences.disliked.includes(meal.idMeal)) {
+            return false;
+          }
+
+          // Check if it's a main meal category
+          if (!mainMealCategories.includes(meal.strCategory)) {
+            console.log('Filtered out non-main meal:', meal.strMeal, meal.strCategory);
+            return false;
+          }
+
+          // Apply dietary preferences
+          if (dietaryPreferences.pescatarian) {
+            const isAllowed = !['Beef', 'Chicken', 'Lamb', 'Pork', 'Goat'].includes(meal.strCategory);
+            if (!isAllowed) {
+              console.log('Filtered out non-pescatarian meal:', meal.strMeal, meal.strCategory);
+            }
+            return isAllowed;
+          }
+          
+          if (dietaryPreferences.vegetarian) {
+            return ['Vegetarian', 'Vegan', 'Pasta', 'Side'].includes(meal.strCategory) ||
+                   // You could also check ingredients to ensure no meat
+                   !meal.ingredients.some(ing => 
+                     ['chicken', 'beef', 'pork', 'lamb', 'goat', 'fish'].some(meat => 
+                       ing.name.toLowerCase().includes(meat)
+                     )
+                   );
+          }
+          
+          if (dietaryPreferences.vegan) {
+            return meal.strCategory === 'Vegan';
+          }
+
+          return true;
+        })
+        .map(meal => ({
+          id: meal.idMeal,
+          name: meal.strMeal,
+          image: meal.strMealThumb,
+          category: meal.strCategory,
+          ingredients: Object.keys(meal)
+            .filter(key => key.startsWith('strIngredient') && meal[key])
             .map(key => ({
-              name: result.meals[0][key],
-              measure: result.meals[0][`strMeasure${key.slice(13)}`]
+              name: meal[key],
+              measure: meal[`strMeasure${key.slice(13)}`]
             }))
         }));
 
-      setMeals(formattedMeals);
+      console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category}))); // Debug log
+
+      // Shuffle the meals array
+      const shuffledMeals = formattedMeals
+        .sort(() => Math.random() - 0.5);
+
+      console.log('Total meals after filtering:', shuffledMeals.length);
+      setMeals(shuffledMeals);
+      
     } catch (error) {
-      console.error('Error fetching initial meals:', error);
+      console.error('Error fetching meals:', error);
     }
   };
 
   const fetchMoreMeals = async () => {
     if (!householdData) return;
-    
-    try {
-      const currentUser = auth.currentUser;
-      const isUser1 = householdData.users.user1.uid === currentUser.uid;
-      const userField = isUser1 ? 'user1' : 'user2';
-      const userPreferences = householdData.users[userField]?.mealPreferences || { liked: [], disliked: [] };
-      
-      // Same logic as fetchInitialMeals
-      const shuffledIds = [...CURATED_MEAL_IDS]
-        .sort(() => Math.random() - 0.5)
-        .filter(id => !userPreferences.liked.includes(id) && !userPreferences.disliked.includes(id));
-      
-      const mealPromises = shuffledIds.slice(0, 15).map(id => 
-        fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`).then(res => res.json())
-      );
-      
-      const mealResults = await Promise.all(mealPromises);
-      
-      const formattedMeals = mealResults
-        .filter(result => result.meals && result.meals[0]) // Ensure valid response
-        .map(result => ({
-          id: result.meals[0].idMeal,
-          name: result.meals[0].strMeal,
-          image: result.meals[0].strMealThumb,
-          category: result.meals[0].strCategory,
-          ingredients: Object.keys(result.meals[0])
-            .filter(key => key.startsWith('strIngredient') && result.meals[0][key])
-            .map(key => ({
-              name: result.meals[0][key],
-              measure: result.meals[0][`strMeasure${key.slice(13)}`]
-            }))
-        }));
-
-      setMeals(formattedMeals);
-    } catch (error) {
-      console.error('Error fetching more meals:', error);
-    }
+    fetchInitialMeals(householdData);
   };
 
   const handleSwipe = async (direction) => {

@@ -37,14 +37,18 @@ export default function UserInfoForm() {
         lastActive: serverTimestamp(),
     });
 
-    const handleDietaryChange = (preference) => {
-        setFormData(prev => ({
-            ...prev,
-            dietaryPreferences: {
-                ...prev.dietaryPreferences,
-                [preference]: !prev.dietaryPreferences[preference]
+    const [dietaryPreferences, setDietaryPreferences] = useState([]);
+
+    const handleDietaryPreferenceChange = (preference) => {
+        setDietaryPreferences(prev => {
+            // If unchecking the current preference
+            if (prev.includes(preference)) {
+                return prev.filter(p => p !== preference);
             }
-        }));
+            
+            // If checking a new preference, clear all others and add the new one
+            return [preference];
+        });
     };
 
     const handleAllergiesChange = (preference) => {
@@ -98,23 +102,36 @@ export default function UserInfoForm() {
                 />
 
                 <Text style={styles.sectionTitle}>Dietary Preferences</Text>
-                <View style={styles.checkboxContainer}>
-                    <View style={styles.checkboxRow}>
-                        {['vegetarian', 'vegan', 'pescatarian'].map((diet, index) => (
-                            <View key={diet} style={styles.section}>
-                                <Checkbox
-                                    style={styles.checkbox}
-                                    value={formData.dietaryPreferences[diet]}
-                                    onValueChange={() => handleDietaryChange(diet)}
-                                    color="green"
-                                />
-                                <Text style={styles.paragraph}>{diet.charAt(0).toUpperCase() + diet.slice(1)}</Text>
-                            </View>
-                        ))}
-                    </View>
+                <View style={styles.preferencesContainer}>
+                    <Text style={styles.label}>Dietary Preferences</Text>
+                    
+                    {['Vegan', 'Vegetarian', 'Pescatarian'].map((preference) => (
+                        <View key={preference} style={styles.checkboxContainer}>
+                            <Checkbox
+                                value={dietaryPreferences.includes(preference)}
+                                onValueChange={() => handleDietaryPreferenceChange(preference)}
+                                disabled={dietaryPreferences.length > 0 && !dietaryPreferences.includes(preference)}
+                                style={[
+                                    styles.checkbox,
+                                    dietaryPreferences.length > 0 && !dietaryPreferences.includes(preference) && 
+                                    styles.disabledCheckbox
+                                ]}
+                            />
+                            <Text style={[
+                                styles.checkboxLabel,
+                                dietaryPreferences.length > 0 && !dietaryPreferences.includes(preference) && 
+                                styles.disabledText
+                            ]}>
+                                {preference}
+                                {preference === 'Vegan' && (
+                                    <Text style={styles.helperText}> (includes vegetarian)</Text>
+                                )}
+                            </Text>
+                        </View>
+                    ))}
                 </View>
 
-                <Text style={styles.sectionTitle}>Allergies</Text>
+                {/* <Text style={styles.sectionTitle}>Allergies</Text>
                 <View style={styles.checkboxContainer}>
                     <View style={styles.checkboxRow}>
                         {['Fish', 'Soy', 'Gluten', 'Dairy', 'Nuts'].map((allergies, index) => (
@@ -129,7 +146,7 @@ export default function UserInfoForm() {
                             </View>
                         ))}
                     </View>
-                </View>
+                </View> */}
                 <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                     <Text style={styles.buttonText}>Submit</Text>
                 </TouchableOpacity>
@@ -176,7 +193,9 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     checkboxContainer: {
-        marginBottom: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 8,
     },
     section: {
         flexDirection: 'row',
@@ -188,7 +207,7 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     checkbox: {
-        margin: 8,
+        marginRight: 8,
     },
     button: {
         backgroundColor: Colors.PRIMARY,
@@ -205,5 +224,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+    },
+    preferencesContainer: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    disabledCheckbox: {
+        opacity: 0.5,
+        backgroundColor: '#e0e0e0',
+    },
+    disabledText: {
+        color: '#999',
+    },
+    checkboxLabel: {
+        fontSize: 16,
+        color: '#333',
+    },
+    helperText: {
+        fontSize: 12,
+        color: '#666',
+        fontStyle: 'italic',
     },
 });
