@@ -49,22 +49,32 @@ export default function CreateHouseholdScreen({ navigation }) {
                         uid: userData.uid,
                         name: userData.FirstName + " " + userData.LastName,
                         email: userData.email,
+                        mealPreferences: {  // Add this structure for user2
+                            liked: [],
+                            disliked: []
+                        }
                     },
                     user2: {
                         uid: "",
                         name: "",
                         email: "",
+                        mealPreferences: {  // Add this structure for user2
+                            liked: [],
+                            disliked: []
+                        }
                     }
                 },
                 currentSession: {
                     startDate: serverTimestamp(),
-                    status: "pending"
+                    status: "pending",
+                    matchedMeals: [],
+                    shoppingList: {
+                        items: {},
+                        lastUpdated: serverTimestamp(),
+                        status: "active"
+                    }
                 },
                 weeklyPlans: {},
-                mealPreferences: {
-                    liked: {},
-                    disliked: {}
-                },
                 householdName: formData.householdName,
                 inviteCode: generateInviteCode(), // Function to generate unique code
                 status: 'active'

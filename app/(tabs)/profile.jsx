@@ -221,6 +221,10 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
                 await updateDoc(houseRef, {
                   [`users.${userField}.email`]: "",
                   [`users.${userField}.name`]: "",
+                  [`users.${userField}.personalmealPreferences`]: {
+                    liked: [],
+                    disliked: []
+                  },
                   [`users.${userField}.uid`]: ""
                 });
               }
@@ -266,6 +270,10 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
     partner: (houseData?.users.user1.uid !== auth.currentUser.uid ? houseData?.users.user1.name : 
       houseData?.users.user2.uid !== auth.currentUser.uid ? houseData?.users.user2.name : '') || '',    
     houseName: houseData?.householdName || '',
+    mealPreferences: {
+      liked: userData?.personalmealPreferences?.liked || [],
+      disliked: userData?.personalmealPreferences?.disliked || []
+    },
     dietaryPreferences: Object.entries(userData?.dietaryPreferences || {})
       .filter(([_, value]) => value)
       .map(([key]) => key.charAt(0).toUpperCase() + key.slice(1)),

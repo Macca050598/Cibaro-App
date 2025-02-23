@@ -37,6 +37,10 @@ export default function JoinHouseholdScreen() {
                     uid: currentUser.uid,
                     name: usersData.FirstName + " " + usersData.LastName, // Ensure userData is fetched correctly
                     email: currentUser.email, // Ensure userData is fetched correctly
+                    mealPreferences: {  // Add this structure
+                        liked: [],
+                        disliked: []
+                    }
                 };
 
                 // Update household users array
