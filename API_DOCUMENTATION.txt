@@ -1,0 +1,398 @@
+Recipe API Documentation
+=======================
+
+Base URL: https://recipe-api.onrender.com/api
+
+Authentication
+-------------
+Currently no authentication required for GET endpoints.
+
+Endpoints
+---------
+
+1. Get All Recipes
+-----------------
+GET /recipes
+
+Returns all recipes in the database.
+
+Example Response:
+{
+  "recipes": [
+    {
+      "_id": "string",
+      "title": "string",
+      "description": "string",
+      "ingredients": [
+        {
+          "amount": number,
+          "unit": "string",
+          "item": "string"
+        }
+      ],
+      "instructions": ["string"],
+      "preparationTime": number,
+      "cookingTime": number,
+      "servings": number,
+      "difficulty": "easy" | "medium" | "hard",
+      "cuisine": "string",
+      "dietaryInfo": {
+        "vegetarian": boolean,
+        "vegan": boolean,
+        "glutenFree": boolean,
+        "eggFree": boolean,
+        "dairyFree": boolean,
+        "pescetarian": boolean,
+        "lowCalorie": boolean,
+        "healthy": boolean,
+        "lowFat": boolean,
+        "lowCarb": boolean,
+        "nutFree": boolean
+      },
+      "nutritionalInfo": {
+        "calories": number,
+        "protein": number,
+        "carbohydrates": number,
+        "fat": number
+      },
+      "imageUrl": "string",
+      "sourceUrl": "string",
+      "collections": ["string"]
+    }
+  ]
+}
+
+2. Get Recipe by ID
+------------------
+GET /recipes/:id
+
+Returns a single recipe by its ID.
+
+Example Request:
+GET /recipes/507f1f77bcf86cd799439011
+
+Example Response:
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "title": "Easy Chicken Curry",
+  ... (same structure as above)
+}
+
+Error Responses
+--------------
+200: Success
+404: Recipe not found
+500: Server error
+
+Usage Examples
+-------------
+JavaScript/TypeScript: 
+
+fetch('https://recipe-api.onrender.com/api/recipes')
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+
+React Native (Expo):
+```typescript
+// Using fetch
+const getRecipes = async () => {
+  try {
+    const response = await fetch('https://recipe-api.onrender.com/api/recipes');
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+  }
+};
+
+// Using Axios (recommended)
+import axios from 'axios';
+
+const getRecipes = async () => {
+  try {
+    const response = await axios.get('https://recipe-api.onrender.com/api/recipes');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+  }
+};
+
+// Example usage in a component:
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList } from 'react-native';
+
+export default function RecipeList() {
+  const [recipes, setRecipes] = useState([]);
+
+  useEffect(() => {
+    getRecipes().then(data => setRecipes(data));
+  }, []);
+
+  return (
+    <FlatList
+      data={recipes}
+      keyExtractor={item => item._id}
+      renderItem={({ item }) => (
+        <Text>{item.title}</Text>
+      )}
+    />
+  );
+}
+```
+
+Python:
+
+import requests
+response = requests.get('https://recipe-api.onrender.com/api/recipes')
+data = response.json()
+
+
+Rate Limiting
+------------
+- 100 requests per 15-minute window
+- Exceeding this limit will result in a 429 status code
+
+Notes
+-----
+- All timestamps are in ISO 8601 format
+- All measurements are in metric units
+- Images are served via HTTPS
+- API responses are cached for 5 minutes
+
+TypeScript Interfaces
+-------------------
+```typescript
+interface Recipe {
+  _id: string;
+  title: string;
+  description: string;
+  ingredients: {
+    amount: number;
+    unit: string;
+    item: string;
+  }[];
+  instructions: string[];
+  preparationTime: number;
+  cookingTime: number;
+  servings: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  cuisine: string;
+  dietaryInfo: {
+    vegetarian: boolean;
+    vegan: boolean;
+    glutenFree: boolean;
+    eggFree: boolean;
+    dairyFree: boolean;
+    pescetarian: boolean;
+    lowCalorie: boolean;
+    healthy: boolean;
+    lowFat: boolean;
+    lowCarb: boolean;
+    nutFree: boolean;
+  };
+  nutritionalInfo: {
+    calories: number;
+    protein: number;
+    carbohydrates: number;
+    fat: number;
+  };
+  imageUrl: string;
+  sourceUrl: string;
+  collections: string[];
+}
+```
+
+Advanced React Native Examples
+---------------------------
+```typescript
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import axios from 'axios';
+
+interface RecipeListProps {
+  filterVegetarian?: boolean;
+  searchQuery?: string;
+}
+
+export default function RecipeList({ filterVegetarian, searchQuery }: RecipeListProps) {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch recipes with filtering and search
+  const fetchRecipes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get('https://recipe-api.onrender.com/api/recipes');
+      let filteredRecipes = response.data;
+
+      // Apply vegetarian filter
+      if (filterVegetarian) {
+        filteredRecipes = filteredRecipes.filter(
+          (recipe: Recipe) => recipe.dietaryInfo.vegetarian
+        );
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        filteredRecipes = filteredRecipes.filter((recipe: Recipe) =>
+          recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      setRecipes(filteredRecipes);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecipes();
+  }, [filterVegetarian, searchQuery]);
+
+  // Error state
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.error}>Error: {error}</Text>
+      </View>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  // Empty state
+  if (recipes.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text>No recipes found</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={recipes}
+      keyExtractor={item => item._id}
+      renderItem={({ item }) => (
+        <View style={styles.recipeCard}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text>Prep time: {item.preparationTime} mins</Text>
+          <Text>Difficulty: {item.difficulty}</Text>
+        </View>
+      )}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recipeCard: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+  },
+});
+
+// Example usage with filters:
+function App() {
+  const [isVegetarian, setIsVegetarian] = useState(false);
+  const [search, setSearch] = useState('');
+
+  return (
+    <RecipeList 
+      filterVegetarian={isVegetarian}
+      searchQuery={search}
+    />
+  );
+}
+```
+
+Custom Hook Example
+-----------------
+```typescript
+// hooks/useRecipes.ts
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+interface UseRecipesOptions {
+  vegetarianOnly?: boolean;
+  search?: string;
+}
+
+export function useRecipes({ vegetarianOnly, search }: UseRecipesOptions = {}) {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchRecipes = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('https://recipe-api.onrender.com/api/recipes');
+        
+        if (mounted) {
+          let filteredRecipes = response.data;
+          
+          if (vegetarianOnly) {
+            filteredRecipes = filteredRecipes.filter(
+              (recipe: Recipe) => recipe.dietaryInfo.vegetarian
+            );
+          }
+
+          if (search) {
+            filteredRecipes = filteredRecipes.filter(
+              (recipe: Recipe) => recipe.title.toLowerCase().includes(search.toLowerCase())
+            );
+          }
+
+          setRecipes(filteredRecipes);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'An error occurred');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchRecipes();
+
+    return () => {
+      mounted = false;
+    };
+  }, [vegetarianOnly, search]);
+
+  return { recipes, loading, error };
+}
+```

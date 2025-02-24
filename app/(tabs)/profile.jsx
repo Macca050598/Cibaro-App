@@ -18,11 +18,37 @@ export default function Profile() {
   const [modalType, setModalType] = useState(null);
 
 
-const availableDietaryPreferences = ['Vegan', 'Vegetarian', 'Pescatarian'];
-const availableAllergiesPreferences = ['Fish', 'Soy', 'Gluten', 'Nuts', 'Dairy'];
+const availableDietaryPreferences = [
+  'Vegan', 
+  'Vegetarian', 
+  'Pescatarian',
+ 
+];
+const availableAllergiesPreferences = [ 
+  'Gluten Free',
+  'Dairy Free',
+  'Nut Free',
+  'Low Carb',
+  'Low Fat',
+  'Low Sugar',
+  'High Protein'];
 
 const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }) => {
-  const [localPreferences, setLocalPreferences] = useState(new Set(currentPreferences));
+  // Initialize localPreferences based on type
+  const [localPreferences, setLocalPreferences] = useState(() => {
+    if (type === 'dietary') {
+      return new Set(currentPreferences);
+    } else {
+      // For allergies, convert from lowercase keys to proper case for display
+      return new Set(
+        currentPreferences.map(pref => 
+          pref.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ')
+        )
+      );
+    }
+  });
   const options = type === "dietary" ? availableDietaryPreferences : availableAllergiesPreferences;
 
   const handleToggle = (option) => {
@@ -798,5 +824,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
+  },
+  preferencesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  preferenceItem: {
+    width: '48%',
+    marginVertical: 5,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  preferenceText: {
+    fontSize: 14,
+    marginLeft: 8,
   },
 })

@@ -311,10 +311,10 @@ export default function Plan() {
   // Add this function to fetch recipe details
   const fetchRecipeDetails = async (mealId) => {
     try {
-      const response = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`);
+      const response = await fetch(`https://recipe-api-3isk.onrender.com/api/recipes/${mealId}`);
       const data = await response.json();
-      if (data.meals && data.meals[0]) {
-        setSelectedRecipe(data.meals[0]);
+      if (data) {
+        setSelectedRecipe(data);
         setShowRecipeModal(true);
       }
     } catch (error) {

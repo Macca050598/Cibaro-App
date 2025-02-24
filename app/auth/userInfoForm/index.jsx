@@ -25,13 +25,16 @@ export default function UserInfoForm() {
             vegan: false,
             vegetarian: false,
             pescatarian: false,
+           
         },
         allergiesPreferences: {
-        Fish: false, 
-        Soy: false, 
-        Gluten: false, 
-        Nuts: false, 
-        Dairy: false,
+            glutenFree: false,
+            dairyFree: false,
+            nutFree: false,
+            lowCarb: false,
+            lowFat: false,
+            lowSugar: false,
+            highProtein: false,
         },
         createdAt: serverTimestamp(),
         lastActive: serverTimestamp(),
@@ -40,15 +43,14 @@ export default function UserInfoForm() {
     const [dietaryPreferences, setDietaryPreferences] = useState([]);
 
     const handleDietaryPreferenceChange = (preference) => {
-        setDietaryPreferences(prev => {
-            // If unchecking the current preference
-            if (prev.includes(preference)) {
-                return prev.filter(p => p !== preference);
+        const key = preference.toLowerCase().replace(/\s+/g, '');
+        setFormData(prev => ({
+            ...prev,
+            dietaryPreferences: {
+                ...prev.dietaryPreferences,
+                [key]: !prev.dietaryPreferences[key]
             }
-            
-            // If checking a new preference, clear all others and add the new one
-            return [preference];
-        });
+        }));
     };
 
     const handleAllergiesChange = (preference) => {

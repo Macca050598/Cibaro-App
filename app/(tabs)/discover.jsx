@@ -70,78 +70,84 @@ export default function Discover() {
       const userSnap = await getDoc(userRef);
       const userData = userSnap.data();
       const dietaryPreferences = userData?.dietaryPreferences || {};
+      const allergiesPreferences = userData?.allergiesPreferences || {};
 
-      console.log('User Dietary Preferences:', dietaryPreferences); // Debug log
+      console.log('User Dietary Preferences:', dietaryPreferences);
 
-      // Define main meal categories
-      const mainMealCategories = [
-        'Beef', 'Chicken', 'Lamb', 'Pork', 'Seafood', 'Pasta', 
-        'Vegetarian', 'Vegan', 'Goat', 'Miscellaneous', 'Side'
-      ];
-
-      // Fetch all meals from the API
-      const response = await fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=');
-      const data = await response.json();
+      // Fetch all meals from your new API
+      const response = await fetch('https://recipe-api-3isk.onrender.com/api/recipes');
+      const recipes = await response.json();
       
-      if (!data.meals) {
-        console.error('No meals returned from API');
+      // console.log('API Response:', recipes); // Debug log
+
+      if (!recipes || !Array.isArray(recipes)) {
+        console.error('Invalid API response format:', recipes);
         return;
       }
 
       // Filter and format meals
-      const formattedMeals = data.meals
-        .filter(meal => {
+      const formattedMeals = recipes
+        .filter(recipe => {
           // Skip if already liked or disliked
-          if (userPreferences.liked.includes(meal.idMeal) || 
-              userPreferences.disliked.includes(meal.idMeal)) {
+          if (userPreferences.liked.includes(recipe._id) || 
+              userPreferences.disliked.includes(recipe._id)) {
             return false;
           }
 
-          // Check if it's a main meal category
-          if (!mainMealCategories.includes(meal.strCategory)) {
-            console.log('Filtered out non-main meal:', meal.strMeal, meal.strCategory);
+          // Check dietary preferences (mutually exclusive)
+          if (dietaryPreferences.pescatarian && !recipe.dietaryInfo.pescetarian) {
+            return false;
+          }
+          if (dietaryPreferences.vegetarian && !recipe.dietaryInfo.vegetarian) {
+            return false;
+          }
+          if (dietaryPreferences.vegan && !recipe.dietaryInfo.vegan) {
             return false;
           }
 
-          // Apply dietary preferences
-          if (dietaryPreferences.pescatarian) {
-            const isAllowed = !['Beef', 'Chicken', 'Lamb', 'Pork', 'Goat'].includes(meal.strCategory);
-            if (!isAllowed) {
-              console.log('Filtered out non-pescatarian meal:', meal.strMeal, meal.strCategory);
-            }
-            return isAllowed;
+          // Check health preferences (can have multiple)
+          if (allergiesPreferences.glutenFree && !recipe.dietaryInfo.glutenFree) {
+            return false;
           }
-          
-          if (dietaryPreferences.vegetarian) {
-            return ['Vegetarian', 'Vegan', 'Pasta', 'Side'].includes(meal.strCategory) ||
-                   // You could also check ingredients to ensure no meat
-                   !meal.ingredients.some(ing => 
-                     ['chicken', 'beef', 'pork', 'lamb', 'goat', 'fish'].some(meat => 
-                       ing.name.toLowerCase().includes(meat)
-                     )
-                   );
+          if (allergiesPreferences.dairyFree && !recipe.dietaryInfo.dairyFree) {
+            return false;
           }
-          
-          if (dietaryPreferences.vegan) {
-            return meal.strCategory === 'Vegan';
+          if (allergiesPreferences.nutFree && !recipe.dietaryInfo.nutFree) {
+            return false;
+          }
+          if (allergiesPreferences.lowCarb && !recipe.dietaryInfo.lowCarb) {
+            return false;
+          }
+          if (allergiesPreferences.lowFat && !recipe.dietaryInfo.lowFat) {
+            return false;
+          }
+          if (allergiesPreferences.lowSugar && !recipe.dietaryInfo.lowSugar) {
+            return false;
+          }
+          if (allergiesPreferences.highProtein && !recipe.dietaryInfo.highProtein) {
+            return false;
           }
 
           return true;
         })
-        .map(meal => ({
-          id: meal.idMeal,
-          name: meal.strMeal,
-          image: meal.strMealThumb,
-          category: meal.strCategory,
-          ingredients: Object.keys(meal)
-            .filter(key => key.startsWith('strIngredient') && meal[key])
-            .map(key => ({
-              name: meal[key],
-              measure: meal[`strMeasure${key.slice(13)}`]
-            }))
+        .map(recipe => ({
+          id: recipe._id,
+          name: recipe.title,
+          image: recipe.imageUrl,
+          category: recipe.cuisine,
+          cuisine: recipe.cuisine,
+          difficulty: recipe.difficulty,
+          preparationTime: recipe.preparationTime,
+          cookingTime: recipe.cookingTime,
+          servings: recipe.servings,
+          nutritionalInfo: recipe.nutritionalInfo,
+          ingredients: recipe.ingredients.map(ing => ({
+            name: ing.item,
+            measure: `${ing.amount} ${ing.unit}`
+          }))
         }));
 
-      console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category}))); // Debug log
+      console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category})));
 
       // Shuffle the meals array
       const shuffledMeals = formattedMeals
@@ -383,10 +389,43 @@ export default function Discover() {
             cards={meals}
             renderCard={(card) => (
               <View style={styles.card}>
-                <Image source={{ uri: card?.image || 'Sorry, no image available.' }} style={styles.image} />
+                <Image source={{ uri: card?.image }} style={styles.image} />
                 <View style={styles.cardContent}>
                   <Text style={styles.title}>{card?.name}</Text>
-                  <Text style={styles.category}>{card?.category}</Text>
+                  
+                  {/* Cooking Info Section */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoRow}>
+                      <MaterialIcons name="timer" size={16} color={Colors.PRIMARY} />
+                      <Text style={styles.infoText}>Prep: {card?.preparationTime}m</Text>
+                      <Text style={styles.infoText}>Cook: {card?.cookingTime}m</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <MaterialIcons name="people" size={16} color={Colors.PRIMARY} />
+                      <Text style={styles.infoText}>Serves: {card?.servings}</Text>
+                    </View>
+                  </View>
+
+                  {/* Difficulty and Cuisine */}
+                  {/* <View style={styles.tagContainer}>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{card?.difficulty}</Text>
+                    </View>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{card?.cuisine}</Text>
+                    </View>
+                  </View> */}
+
+                  {/* Nutritional Info */}
+                  <View style={styles.nutritionSection}>
+                    <Text style={styles.sectionTitle}>Nutrition per serving:</Text>
+                    <View style={styles.nutritionRow}>
+                      <Text style={styles.nutritionItem}>Calories: {card?.nutritionalInfo?.calories}kcal</Text>
+                      <Text style={styles.nutritionItem}>Protein: {card?.nutritionalInfo?.protein}g</Text>
+                      <Text style={styles.nutritionItem}>Carbs: {card?.nutritionalInfo?.carbohydrates}g</Text>
+                      <Text style={styles.nutritionItem}>Fats: {card?.nutritionalInfo?.fat}g</Text>
+                    </View>
+                  </View>
                 </View>
                 <View style={styles.overlay}>
                   <View style={styles.leftAction}>
@@ -449,8 +488,8 @@ const styles = StyleSheet.create({
   },
   card: {
     marginLeft: 30,
-    marginTop: 100,
-    height: 500,
+    marginTop: 10,
+    height: 620,
     borderRadius: 20,
     backgroundColor: 'white',
     shadowColor: '#000',
@@ -471,20 +510,66 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: '80%',
+    height: '60%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
   cardContent: {
     padding: 16,
+    flex: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  category: {
-    fontSize: 16,
+  infoSection: {
+    marginTop: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 12,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  tagText: {
+    color: Colors.WHITE,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  nutritionSection: {
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  nutritionItem: {
+    fontSize: 12,
     color: '#666',
   },
   overlay: {
