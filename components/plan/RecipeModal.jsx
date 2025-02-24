@@ -14,7 +14,7 @@ export default function RecipeModal({ recipe, visible, onClose }) {
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{recipe.strMeal}</Text>
+            <Text style={styles.modalTitle}>{recipe.strMeal || recipe.name || 'Recipe'}</Text>
             <TouchableOpacity 
               onPress={onClose}
               style={styles.closeButton}
@@ -24,31 +24,32 @@ export default function RecipeModal({ recipe, visible, onClose }) {
           </View>
           <ScrollView style={styles.recipeDetails}>
             <Text style={styles.sectionTitle}>Instructions</Text>
-            {recipe.strInstructions
-              .split('.')
-              .filter(step => step.trim().length > 0)
-              .map((step, index) => (
-                <View key={index} style={styles.instructionStep}>
-                  <Text style={styles.stepNumber}>{index + 1}</Text>
-                  <Text style={styles.stepText}>{step.trim()}.</Text>
-                </View>
-              ))
-            }
+            <Text style={styles.instructionsText}>
+              {recipe.strInstructions || recipe.instructions || 'No instructions available.'}
+            </Text>
             
             <Text style={styles.sectionTitle}>Ingredients</Text>
             <View style={styles.ingredientsList}>
-              {Array.from({ length: 20 }).map((_, i) => {
-                const ingredient = recipe[`strIngredient${i + 1}`];
-                const measure = recipe[`strMeasure${i + 1}`];
-                if (ingredient && ingredient.trim()) {
-                  return (
-                    <Text key={i} style={styles.ingredient}>
-                      • {measure} {ingredient}
-                    </Text>
-                  );
-                }
-                return null;
-              })}
+              {recipe.ingredients ? (
+                recipe.ingredients.map((ing, i) => (
+                  <Text key={i} style={styles.ingredient}>
+                    • {ing.measure} {ing.name}
+                  </Text>
+                ))
+              ) : (
+                Array.from({ length: 20 }).map((_, i) => {
+                  const ingredient = recipe[`strIngredient${i + 1}`];
+                  const measure = recipe[`strMeasure${i + 1}`];
+                  if (ingredient && ingredient.trim()) {
+                    return (
+                      <Text key={i} style={styles.ingredient}>
+                        • {measure} {ingredient}
+                      </Text>
+                    );
+                  }
+                  return null;
+                })
+              )}
             </View>
           </ScrollView>
         </View>
@@ -88,29 +89,6 @@ const styles = StyleSheet.create({
   recipeDetails: {
     maxHeight: '90%',
   },
-  instructionStep: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    paddingHorizontal: 10,
-  },
-  stepNumber: {
-    backgroundColor: Colors.PRIMARY,
-    color: 'white',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: 12,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  stepText: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -132,5 +110,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#333',
     marginBottom: 8,
+  },
+  instructionsText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
 }); 

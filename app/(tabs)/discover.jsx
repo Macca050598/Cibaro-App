@@ -58,6 +58,15 @@ export default function Discover() {
     }
   }, [householdData]);
 
+  // useEffect(() => {
+  //   if (router.current?.params?.refresh === 'true') {
+  //     console.log('Preferences changed, refreshing recipes...');
+  //     if (householdData) {
+  //       fetchInitialMeals(householdData);
+  //     }
+  //   }
+  // }, [router.current?.params?.refresh]);
+
   const fetchInitialMeals = async (houseData) => {
     try {
       const currentUser = auth.currentUser;
@@ -147,7 +156,7 @@ export default function Discover() {
           }))
         }));
 
-      console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category})));
+      // console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category})));
 
       // Shuffle the meals array
       const shuffledMeals = formattedMeals
@@ -420,7 +429,7 @@ export default function Discover() {
                   <View style={styles.nutritionSection}>
                     <Text style={styles.sectionTitle}>Nutrition per serving:</Text>
                     <View style={styles.nutritionRow}>
-                      <Text style={styles.nutritionItem}>Calories: {card?.nutritionalInfo?.calories}kcal</Text>
+                      <Text style={styles.nutritionItem}>Calories: {card?.nutritionalInfo?.calories}</Text>
                       <Text style={styles.nutritionItem}>Protein: {card?.nutritionalInfo?.protein}g</Text>
                       <Text style={styles.nutritionItem}>Carbs: {card?.nutritionalInfo?.carbohydrates}g</Text>
                       <Text style={styles.nutritionItem}>Fats: {card?.nutritionalInfo?.fat}g</Text>
@@ -488,7 +497,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginLeft: 30,
-    marginTop: 10,
+    marginTop: 25,
     height: 620,
     borderRadius: 20,
     backgroundColor: 'white',

@@ -206,7 +206,7 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
         acc[pref.toLowerCase()] = false;
         return acc;
       }, {});
-  
+    
       // Then set selected ones to true
       selectedPreferences.forEach(pref => {
         preferencesObj[pref.toLowerCase()] = true;
@@ -215,6 +215,17 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
       await updateDoc(userRef, {
         [modalType === "dietary" ? "dietaryPreferences" : "allergiesPreferences"]: preferencesObj,
       });
+
+          // Navigate and force refresh
+          router.replace('/discover');
+          
+          // Wait a bit for navigation to complete
+          setTimeout(() => {
+            if (window.handlePreferenceUpdate) {
+              window.handlePreferenceUpdate();
+            }
+          }, 10);
+
   
       // Update local state
       setUserData(prev => ({
@@ -429,7 +440,7 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="food-steak" size={24} color={Colors.PRIMARY} />
-            <Text style={styles.cardTitle}>Dietary Preferences</Text>
+            <Text style={styles.cardTitle}>Dietary Requirements</Text>
             <TouchableOpacity 
               style={styles.addPreferenceButton} 
               onPress={() => handleOpenModal('dietary')}
@@ -449,7 +460,7 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <MaterialCommunityIcons name="food-apple" size={24} color={Colors.PRIMARY} />
-            <Text style={styles.cardTitle}>Allergy Preferences</Text>
+            <Text style={styles.cardTitle}>Food Preferences</Text>
             <TouchableOpacity 
               style={styles.addPreferenceButton} 
               onPress={() => handleOpenModal('allergies')}

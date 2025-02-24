@@ -459,19 +459,31 @@ export default function Plan() {
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.recipeDetails}>
-                <Text style={styles.sectionTitle}>Instructions</Text>
-                {selectedRecipe.strInstructions
-                  .split('.')
-                  .filter(step => step.trim().length > 0)
-                  .map((step, index) => (
-                    <View key={index} style={styles.instructionStep}>
-                      <Text style={styles.stepNumber}>{index + 1}</Text>
-                      <Text style={styles.stepText}>{step.trim()}.</Text>
-                    </View>
-                  ))
-                }
+                <View style={styles.instructionsContainer}>
+                  <Text style={styles.sectionTitle}>Instructions</Text>
+                  {(() => {
+                    const instructions = selectedRecipe?.strInstructions || selectedRecipe?.instructions || '';
+                    
+                    if (!instructions) {
+                      return <Text style={styles.stepText}>No instructions available.</Text>;
+                    }
+
+                    // Convert to string if it's an array
+                    const instructionText = Array.isArray(instructions) ? instructions.join(' ') : instructions;
+                    
+                    return instructionText
+                      .split('.')
+                      .filter(step => step.trim().length > 0)
+                      .map((step, index) => (
+                        <View key={index} style={styles.instructionStep}>
+                          <Text style={styles.stepNumber}>{index + 1}.</Text>
+                          <Text style={styles.stepText}>{step.trim()}</Text>
+                        </View>
+                      ));
+                  })()}
+                </View>
                 
-                <Text style={styles.sectionTitle}>Ingredients</Text>
+                {/* <Text style={styles.sectionTitle}>Ingredients</Text>
                 <View style={styles.ingredientsList}>
                   {Array.from({ length: 20 }).map((_, i) => {
                     const ingredient = selectedRecipe[`strIngredient${i + 1}`];
@@ -485,7 +497,7 @@ export default function Plan() {
                     }
                     return null;
                   })}
-                </View>
+                </View> */}
               </ScrollView>
             </View>
           </View>
@@ -781,28 +793,38 @@ const styles = StyleSheet.create({
   recipeDetails: {
     maxHeight: '90%',
   },
+  instructionsContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
   instructionStep: {
     flexDirection: 'row',
     marginBottom: 16,
-    paddingHorizontal: 10,
+    paddingRight: 16,
+    alignItems: 'flex-start',
   },
   stepNumber: {
-    backgroundColor: Colors.PRIMARY,
-    color: 'white',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: 12,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
+    color: Colors.PRIMARY,
+    width: 25,
+    marginRight: 8,
   },
   stepText: {
-    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.PRIMARY,
+    marginTop: 0,
+    marginBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.PRIMARY + '40',
+    paddingBottom: 8,
   },
   ingredientsList: {
     backgroundColor: '#f8f8f8',
@@ -816,14 +838,4 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.PRIMARY,
-    marginTop: 24,
-    marginBottom: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.PRIMARY + '40',
-    paddingBottom: 8,
-  }
 })

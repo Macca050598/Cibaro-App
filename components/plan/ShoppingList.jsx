@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
     color: '#666',
     minWidth: 80,
     textAlign: 'right',
+    paddingLeft: 10,
   },
   checkedItem: {
     textDecorationLine: 'line-through',
