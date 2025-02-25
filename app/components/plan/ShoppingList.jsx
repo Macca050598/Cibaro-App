@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import Checkbox from 'expo-checkbox';
-import Colors from '../../constants/Colors';
+import Colors from '../../../constants/Colors';
 
 export default function ShoppingList({ items, matchedMeals, onToggleItem }) {
   if (!items) {

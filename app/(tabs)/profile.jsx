@@ -368,7 +368,14 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
       <ScrollView style={styles.container}>
         <View style={styles.header}>
           <View style={styles.profileInfo}>
-            <View style={styles.avatarContainer}>
+          <View style={styles.avatarContainer}>
+
+               <TouchableOpacity 
+              style={styles.avatarContainer}
+              onPress={() => router.push('/components/settings')}
+            >
+              <MaterialIcons name="settings" size={35} color={Colors.PRIMARY} style={styles.settingsButton}/>
+            </TouchableOpacity>
               <MaterialIcons name="account-circle" size={80} color={Colors.PRIMARY} />
             </View>
             <Text style={styles.name}>{user.name}</Text>
@@ -572,7 +579,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarContainer: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   name: {
     fontSize: 24,
@@ -852,5 +859,13 @@ const styles = StyleSheet.create({
   preferenceText: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  settingsButton: {
+    padding: 8,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    left: 150 ,
+    top: 0, 
   },
 })

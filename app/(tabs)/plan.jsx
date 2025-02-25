@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert, TextInput, Modal } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert, TextInput, Modal, Animated } from 'react-native'
+import React, { useState, useEffect, useRef } from 'react'
 import { Calendar } from 'react-native-calendars'
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import Colors from './../../constants/Colors'
 import { auth, db } from '../../configs/FirebaseConfig'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import Checkbox from 'expo-checkbox'
-
+import { useColorScheme } from 'react-native'
+import { ActivityIndicator } from 'react-native'
 
 export default function Plan() {
   const [selectedDate, setSelectedDate] = useState('')
@@ -18,6 +19,8 @@ export default function Plan() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const isDarkMode = useColorScheme() === 'dark'
   
   // // Dummy data - replace with your actual data
   // const mealPlan = {
@@ -43,26 +46,32 @@ export default function Plan() {
   // }, {})
 
   useEffect(() => {
-    fetchHouseholdData();
-  }, []);
+    const fetchHouseholdData = async () => {
+      try {
+        setIsLoading(true)
+        const userRef = doc(db, 'users', auth.currentUser.uid)
+        const userSnap = await getDoc(userRef)
+        const userData = userSnap.data()
 
-  const fetchHouseholdData = async () => {
-    try {
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const userSnap = await getDoc(userRef);
-      const userData = userSnap.data();
-
-      if (userData?.householdId) {
-        const householdRef = doc(db, 'households', userData.householdId);
-        const householdSnap = await getDoc(householdRef);
-        setHouseholdData({ ...householdSnap.data(), uid: userData.householdId });
+        if (userData?.householdId) {
+          const householdRef = doc(db, 'households', userData.householdId)
+          const householdSnap = await getDoc(householdRef)
+          setHouseholdData(householdSnap.data())
+        }
+      } catch (error) {
+        console.error('Error fetching household data:', error)
+      } finally {
+        setIsLoading(false)
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start()
       }
-    } catch (error) {
-      console.error('Error fetching household data:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    fetchHouseholdData()
+  }, [fadeAnim])
 
   const toggleItemChecked = async (recipeName, ingredientIndex) => {
     try {
@@ -323,118 +332,128 @@ export default function Plan() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : Colors.WHITE }}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+      </SafeAreaView>
+    )
+  }
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.WHITE }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? '#000' : Colors.WHITE }}>
       <ScrollView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Weekly Meals</Text>
-          <TouchableOpacity 
-            style={styles.shareButton}
-            onPress={() => setShowCalendar(true)}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Weekly Meals</Text>
+            <TouchableOpacity 
+              style={styles.shareButton}
+              onPress={() => setShowCalendar(true)}
+            >
+              <MaterialIcons name="calendar-today" size={24} color={Colors.PRIMARY} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Matched Meals Section */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="food" size={24} color={Colors.PRIMARY} />
+              <Text style={styles.cardTitle}>Your Matched Meals</Text>
+            </View>
+            {renderMatchedMeals()}
+          </View>
+
+          {/* Calendar Modal */}
+          <Modal
+            visible={showCalendar}
+            animationType="slide"
+            transparent={true}
           >
-            <MaterialIcons name="calendar-today" size={24} color={Colors.PRIMARY} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Matched Meals Section */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="food" size={24} color={Colors.PRIMARY} />
-            <Text style={styles.cardTitle}>Your Matched Meals</Text>
-          </View>
-          {renderMatchedMeals()}
-        </View>
-
-        {/* Calendar Modal */}
-        <Modal
-          visible={showCalendar}
-          animationType="slide"
-          transparent={true}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Meal Calendar</Text>
-                <TouchableOpacity 
-                  onPress={() => setShowCalendar(false)}
-                  style={styles.closeButton}
-                >
-                  <MaterialIcons name="close" size={24} color={Colors.PRIMARY} />
-                </TouchableOpacity>
-              </View>
-              <Calendar
-                onDayPress={day => setSelectedDate(day.dateString)}
-                theme={{
-                  todayTextColor: Colors.PRIMARY,
-                  selectedDayBackgroundColor: Colors.PRIMARY,
-                  dotColor: Colors.PRIMARY,
-                }}
-              />
-            </View>
-          </View>
-        </Modal>
-
-        {/* Shopping List */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.headerLeft}>
-              <MaterialIcons name="shopping-cart" size={24} color={Colors.PRIMARY} />
-              <Text style={styles.cardTitle}>Shopping List</Text>
-            </View>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={handleResetShoppingList}
-              >
-                <MaterialIcons name="refresh" size={24} color={Colors.PRIMARY} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={() => setShowAddItem(true)}
-              >
-                <MaterialIcons name="add" size={24} color={Colors.PRIMARY} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {showAddItem && (
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Item name"
-                value={newItemName}
-                onChangeText={setNewItemName}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Quantity (optional)"
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-              />
-              <View style={styles.addItemButtons}>
-                <TouchableOpacity 
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setShowAddItem(false);
-                    setNewItemName('');
-                    setNewItemQuantity('');
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Meal Calendar</Text>
+                  <TouchableOpacity 
+                    onPress={() => setShowCalendar(false)}
+                    style={styles.closeButton}
+                  >
+                    <MaterialIcons name="close" size={24} color={Colors.PRIMARY} />
+                  </TouchableOpacity>
+                </View>
+                <Calendar
+                  onDayPress={day => setSelectedDate(day.dateString)}
+                  theme={{
+                    todayTextColor: Colors.PRIMARY,
+                    selectedDayBackgroundColor: Colors.PRIMARY,
+                    dotColor: Colors.PRIMARY,
                   }}
+                />
+              </View>
+            </View>
+          </Modal>
+
+          {/* Shopping List */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.headerLeft}>
+                <MaterialIcons name="shopping-cart" size={24} color={Colors.PRIMARY} />
+                <Text style={styles.cardTitle}>Shopping List</Text>
+              </View>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={handleResetShoppingList}
                 >
-                  <Text style={styles.buttonText}>Cancel</Text>
+                  <MaterialIcons name="refresh" size={24} color={Colors.PRIMARY} />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.addItemButton}
-                  onPress={handleAddItem}
+                  style={styles.iconButton}
+                  onPress={() => setShowAddItem(true)}
                 >
-                  <Text style={styles.buttonText}>Add Item</Text>
+                  <MaterialIcons name="add" size={24} color={Colors.PRIMARY} />
                 </TouchableOpacity>
               </View>
             </View>
-          )}
 
-          {renderShoppingList()}
-        </View>
+            {showAddItem && (
+              <View style={styles.addItemContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Item name"
+                  value={newItemName}
+                  onChangeText={setNewItemName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Quantity (optional)"
+                  value={newItemQuantity}
+                  onChangeText={setNewItemQuantity}
+                />
+                <View style={styles.addItemButtons}>
+                  <TouchableOpacity 
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setShowAddItem(false);
+                      setNewItemName('');
+                      setNewItemQuantity('');
+                    }}
+                  >
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.addItemButton}
+                    onPress={handleAddItem}
+                  >
+                    <Text style={styles.buttonText}>Add Item</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {renderShoppingList()}
+          </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Recipe Modal */}

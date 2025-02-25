@@ -1,6 +1,6 @@
 import { View, Text, Modal, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import Colors from '../../../constants/Colors';
 
 export default function RecipeModal({ recipe, visible, onClose }) {
   if (!recipe) return null;

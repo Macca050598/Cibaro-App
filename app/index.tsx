@@ -14,7 +14,7 @@ export default function RootLayout() {
         // User is signed in, redirect to home
         router.replace('/(tabs)/home');
         // router.replace('/auth/householdForm');
-
+        // router.replace('/auth/userInfoForm');
       } else {
         // No user is signed in, redirect to landing
         router.replace('/Landing');

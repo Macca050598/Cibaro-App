@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, Image, Dimensions, SafeAreaView, Alert, TouchableOpacity } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, Image, Dimensions, SafeAreaView, Alert, TouchableOpacity, Animated } from 'react-native'
+import React, { useState, useEffect, useRef } from 'react'
 // import Swiper from 'react-native-deck-swiper'
 import { MaterialIcons } from '@expo/vector-icons'
 import Colors from './../../constants/Colors'
@@ -7,6 +7,8 @@ import { doc, getDoc, updateDoc, arrayUnion, serverTimestamp, setDoc } from 'fir
 import { auth, db } from '../../configs/FirebaseConfig'
 import Swiper from 'react-native-deck-swiper'
 import { useRouter } from 'expo-router'
+import { useColorScheme } from 'react-native'
+import { ActivityIndicator } from 'react-native'
 const { width } = Dimensions.get('window')
 
 export default function Discover() {
@@ -14,7 +16,9 @@ export default function Discover() {
   const [matchCount, setMatchCount] = useState(0)
   const [householdData, setHouseholdData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const fadeAnim = useRef(new Animated.Value(0)).current
   const router = useRouter()
+  const isDarkMode = useColorScheme() === 'dark'
 
   useEffect(() => {
     const initializeData = async () => {
@@ -23,13 +27,14 @@ export default function Discover() {
         const userRef = doc(db, 'users', auth.currentUser.uid)
         const userSnap = await getDoc(userRef)
         const userData = userSnap.data()
-
+        console.log('User Data:', userData.householdId)
         if (!userData?.householdId) {
           Alert.alert(
             "No Household Found",
             "Join a household to save your meal preferences and match with others!",
-            [{ text: "OK" }]
+            [{ text: "OK", onPress: () => router.push('/auth/householdForm') }]
           )
+          
           setIsLoading(false)
           return
         }
@@ -46,11 +51,16 @@ export default function Discover() {
         console.error('Error initializing data:', error)
       } finally {
         setIsLoading(false)
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start()
       }
     }
 
     initializeData()
-  }, [])
+  }, [fadeAnim])
 
   useEffect(() => {
     if (householdData?.currentSession?.matchedMeals) {
@@ -371,92 +381,101 @@ export default function Discover() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : Colors.WHITE }}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+      </SafeAreaView>
+    )
+  }
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.WHITE }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? '#000' : Colors.WHITE }}>
       <View style={styles.container}>
-        {/* Progress Header */}
-        <View style={styles.header}>
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>
-              Matched: {matchCount}/7 meals
-            </Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${(matchCount / 7) * 100}%` }]} />
-            </View>
-          </View>
-          <TouchableOpacity 
-            style={styles.resetButton}
-            onPress={handleResetPreferences}
-          >
-            <MaterialIcons name="refresh" size={24} color={Colors.WHITE} />
-          </TouchableOpacity>
-        </View>
-
-
-        {meals.length > 0 && (
-          <Swiper
-            cards={meals}
-            renderCard={(card) => (
-              <View style={styles.card}>
-                <Image source={{ uri: card?.image }} style={styles.image} />
-                <View style={styles.cardContent}>
-                  <Text style={styles.title}>{card?.name}</Text>
-                  
-                  {/* Cooking Info Section */}
-                  <View style={styles.infoSection}>
-                    <View style={styles.infoRow}>
-                      <MaterialIcons name="timer" size={16} color={Colors.PRIMARY} />
-                      <Text style={styles.infoText}>Prep: {card?.preparationTime}m</Text>
-                      <Text style={styles.infoText}>Cook: {card?.cookingTime}m</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <MaterialIcons name="people" size={16} color={Colors.PRIMARY} />
-                      <Text style={styles.infoText}>Serves: {card?.servings}</Text>
-                    </View>
-                  </View>
-
-                  {/* Difficulty and Cuisine */}
-                  {/* <View style={styles.tagContainer}>
-                    <View style={styles.tag}>
-                      <Text style={styles.tagText}>{card?.difficulty}</Text>
-                    </View>
-                    <View style={styles.tag}>
-                      <Text style={styles.tagText}>{card?.cuisine}</Text>
-                    </View>
-                  </View> */}
-
-                  {/* Nutritional Info */}
-                  <View style={styles.nutritionSection}>
-                    <Text style={styles.sectionTitle}>Nutrition per serving:</Text>
-                    <View style={styles.nutritionRow}>
-                      <Text style={styles.nutritionItem}>Calories: {card?.nutritionalInfo?.calories}</Text>
-                      <Text style={styles.nutritionItem}>Protein: {card?.nutritionalInfo?.protein}g</Text>
-                      <Text style={styles.nutritionItem}>Carbs: {card?.nutritionalInfo?.carbohydrates}g</Text>
-                      <Text style={styles.nutritionItem}>Fats: {card?.nutritionalInfo?.fat}g</Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.overlay}>
-                  <View style={styles.leftAction}>
-                    <MaterialIcons name="close" size={40} color="#FF4B4B" />
-                  </View>
-                  <View style={styles.rightAction}>
-                    <MaterialIcons name="check" size={40} color="#4CAF50" />
-                  </View>
-                </View>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          {/* Progress Header */}
+          <View style={styles.header}>
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>
+                Matched: {matchCount}/7 meals
+              </Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${(matchCount / 7) * 100}%` }]} />
               </View>
-            )}
-            onSwipedLeft={() => handleSwipe('left')}
-            onSwipedRight={() => handleSwipe('right')}
-            onSwipedAll={() => fetchMoreMeals()}
-            cardIndex={0}
-            backgroundColor={'transparent'}
-            stackSize={3}
-            cardStyle={styles.cardStyle}
-            infinite
-            
-          />
-        )}
+            </View>
+            <TouchableOpacity 
+              style={styles.resetButton}
+              onPress={handleResetPreferences}
+            >
+              <MaterialIcons name="refresh" size={24} color={Colors.WHITE} />
+            </TouchableOpacity>
+          </View>
+
+          {meals.length > 0 && (
+            <Swiper
+              cards={meals}
+              renderCard={(card) => (
+                <View style={styles.card}>
+                  <Image source={{ uri: card?.image }} style={styles.image} />
+                  <View style={styles.cardContent}>
+                    <Text style={styles.title}>{card?.name}</Text>
+                    
+                    {/* Cooking Info Section */}
+                    <View style={styles.infoSection}>
+                      <View style={styles.infoRow}>
+                        <MaterialIcons name="timer" size={16} color={Colors.PRIMARY} />
+                        <Text style={styles.infoText}>Prep: {card?.preparationTime}m</Text>
+                        <Text style={styles.infoText}>Cook: {card?.cookingTime}m</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <MaterialIcons name="people" size={16} color={Colors.PRIMARY} />
+                        <Text style={styles.infoText}>Serves: {card?.servings}</Text>
+                      </View>
+                    </View>
+
+                    {/* Difficulty and Cuisine */}
+                    {/* <View style={styles.tagContainer}>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{card?.difficulty}</Text>
+                      </View>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{card?.cuisine}</Text>
+                      </View>
+                    </View> */}
+
+                    {/* Nutritional Info */}
+                    <View style={styles.nutritionSection}>
+                      <Text style={styles.sectionTitle}>Nutrition per serving:</Text>
+                      <View style={styles.nutritionRow}>
+                        <Text style={styles.nutritionItem}>Calories: {card?.nutritionalInfo?.calories}</Text>
+                        <Text style={styles.nutritionItem}>Protein: {card?.nutritionalInfo?.protein}g</Text>
+                        <Text style={styles.nutritionItem}>Carbs: {card?.nutritionalInfo?.carbohydrates}g</Text>
+                        <Text style={styles.nutritionItem}>Fats: {card?.nutritionalInfo?.fat}g</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.overlay}>
+                    <View style={styles.leftAction}>
+                      <MaterialIcons name="close" size={40} color="#FF4B4B" />
+                    </View>
+                    <View style={styles.rightAction}>
+                      <MaterialIcons name="check" size={40} color="#4CAF50" />
+                    </View>
+                  </View>
+                </View>
+              )}
+              onSwipedLeft={() => handleSwipe('left')}
+              onSwipedRight={() => handleSwipe('right')}
+              onSwipedAll={() => fetchMoreMeals()}
+              cardIndex={0}
+              backgroundColor={'transparent'}
+              stackSize={3}
+              cardStyle={styles.cardStyle}
+              infinite
+              
+            />
+          )}
+        </Animated.View>
       </View>
     </SafeAreaView>
   )
