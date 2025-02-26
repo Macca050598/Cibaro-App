@@ -4,8 +4,10 @@ import { MaterialIcons, Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@
 import Colors from './../../constants/Colors'
 import { router } from 'expo-router'
 import { auth, db } from '../../configs/FirebaseConfig'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { useColorScheme } from 'react-native'
+import MealPlanner from '../components/plan/MealPlanner'
+import RecipeModal from '../components/plan/RecipeModal'
 
 export default function Home() {
   const [userData, setUserData] = useState(null)
@@ -14,6 +16,10 @@ export default function Home() {
   const [partnerName, setPartnerName] = useState('')
   const fadeAnim = useRef(new Animated.Value(0)).current
   const isDarkMode = useColorScheme() === 'dark'
+  const [showMealPlanner, setShowMealPlanner] = useState(false)
+  const [mealPlan, setMealPlan] = useState({})
+  const [selectedRecipe, setSelectedRecipe] = useState(null)
+  const [showRecipeModal, setShowRecipeModal] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +48,11 @@ export default function Home() {
               if (partner && partner.name) {
                 setPartnerName(partner.name.split(' ')[0]) // Get first name only
               }
+
+              // Initialize meal plan from Firestore if it exists
+              if (householdDataFromDB.weeklyPlans) {
+                setMealPlan(householdDataFromDB.weeklyPlans)
+              }
             }
           }
         }
@@ -59,6 +70,28 @@ export default function Home() {
     
     fetchData()
   }, [fadeAnim])
+
+  // Save meal plan to Firestore when it changes
+  useEffect(() => {
+    const saveMealPlan = async () => {
+      if (householdData && Object.keys(mealPlan).length > 0) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid))
+          const userData = userDoc.data()
+          
+          if (userData?.householdId) {
+            await updateDoc(doc(db, 'households', userData.householdId), {
+              weeklyPlans: mealPlan
+            })
+          }
+        } catch (error) {
+          console.error('Error saving meal plan:', error)
+        }
+      }
+    }
+    
+    saveMealPlan()
+  }, [mealPlan])
 
   // Calculate meal plan progress
   const getMatchCount = () => {
@@ -113,6 +146,23 @@ export default function Home() {
   }
 
   const uncheckedItemsCount = countUncheckedItems()
+
+  // Fetch recipe details for meal planner
+  const fetchRecipeDetails = async (recipeId) => {
+    try {
+      // Find the recipe in matched meals
+      const recipe = householdData.currentSession.matchedMeals.find(
+        meal => meal.id === recipeId
+      )
+      
+      if (recipe) {
+        setSelectedRecipe(recipe)
+        setShowRecipeModal(true)
+      }
+    } catch (error) {
+      console.error('Error fetching recipe details:', error)
+    }
+  }
 
   if (loading) {
     return (
@@ -190,7 +240,7 @@ export default function Home() {
                 </View>
                 <TouchableOpacity 
                   style={styles.actionButton}
-                  onPress={() => router.push('/discover')}
+                  onPress={() => router.push('/plan')}
                 >
                   <Text style={styles.actionButtonText}>
                     {matchCount < 7 ? 'Find More Meals' : 'View Matched Meals'}
@@ -229,9 +279,9 @@ export default function Home() {
                   </View>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => router.push('/plan')}
+                    onPress={() => setShowMealPlanner(true)}
                   >
-                    <Text style={styles.actionButtonText}>View All Meals</Text>
+                    <Text style={styles.actionButtonText}>Meal Plan</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -282,7 +332,7 @@ export default function Home() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.quickActionItem}
-                    onPress={() => router.push('/plan')}
+                    onPress={() => setShowMealPlanner(true)}
                   >
                     <MaterialIcons name="calendar-today" size={28} color={Colors.PRIMARY} />
                     <Text style={styles.quickActionText}>Meal Plan</Text>
@@ -299,7 +349,7 @@ export default function Home() {
                     onPress={() => router.push('/profile')}
                   >
                     <MaterialIcons name="settings" size={28} color={Colors.PRIMARY} />
-                    <Text style={styles.quickActionText}>Settings</Text>
+                    <Text style={styles.quickActionText}>Profile / Settings</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -307,6 +357,26 @@ export default function Home() {
           )}
         </Animated.View>
       </ScrollView>
+
+      {/* Meal Planner Modal */}
+      <MealPlanner
+        visible={showMealPlanner}
+        onClose={() => setShowMealPlanner(false)}
+        mealPlan={mealPlan}
+        setMealPlan={setMealPlan}
+        householdData={householdData}
+        fetchRecipeDetails={fetchRecipeDetails}
+      />
+      
+      {/* Recipe Modal */}
+      <RecipeModal 
+        recipe={selectedRecipe}
+        visible={showRecipeModal}
+        onClose={() => {
+          setShowRecipeModal(false)
+          setSelectedRecipe(null)
+        }}
+      />
     </SafeAreaView>
   )
 }

@@ -96,7 +96,7 @@ export default function Discover() {
       // Fetch all meals from your new API
       const response = await fetch('https://recipe-api-3isk.onrender.com/api/recipes');
       const recipes = await response.json();
-      
+
       // console.log('API Response:', recipes); // Debug log
 
       if (!recipes || !Array.isArray(recipes)) {
@@ -163,7 +163,8 @@ export default function Discover() {
           ingredients: recipe.ingredients.map(ing => ({
             name: ing.item,
             measure: `${ing.amount} ${ing.unit}`
-          }))
+          })),
+          dietaryInfo: recipe.dietaryInfo
         }));
 
       // console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category})));
@@ -369,7 +370,7 @@ export default function Discover() {
               const updatedHouseholdSnap = await getDoc(householdRef);
               setHouseholdData({ ...updatedHouseholdSnap.data(), uid: householdData.uid });
               setMatchCount(0);
-              
+              fetchInitialMeals(householdData);
               Alert.alert("Success", "All preferences and shopping list have been reset!");
             } catch (error) {
               console.error('Error resetting preferences:', error);
@@ -433,15 +434,18 @@ export default function Discover() {
                       </View>
                     </View>
 
-                    {/* Difficulty and Cuisine */}
-                    {/* <View style={styles.tagContainer}>
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>{card?.difficulty}</Text>
+                    {/* Dietary Information */}
+                    <View style={styles.dietaryInfoSection}>
+                      <View style={styles.dietaryTagsContainer}>
+                        {Object.entries(card.dietaryInfo).map(([key, value]) => (
+                          value && (
+                            <View key={key} style={styles.dietaryTag}>
+                              <Text style={styles.dietaryTagText}>{key}</Text>
+                            </View>
+                          )
+                        ))}
                       </View>
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>{card?.cuisine}</Text>
-                      </View>
-                    </View> */}
+                    </View>
 
                     {/* Nutritional Info */}
                     <View style={styles.nutritionSection}>
@@ -467,9 +471,9 @@ export default function Discover() {
               onSwipedLeft={() => handleSwipe('left')}
               onSwipedRight={() => handleSwipe('right')}
               onSwipedAll={() => fetchMoreMeals()}
-              cardIndex={0}
+              cardIndex={1}
               backgroundColor={'transparent'}
-              stackSize={3}
+              stackSize={1}
               cardStyle={styles.cardStyle}
               infinite
               
@@ -627,5 +631,34 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 20,
     backgroundColor: Colors.PRIMARY,
+  },
+  dietaryInfoSection: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  dietaryTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 8,
+  },
+  dietaryTag: {
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.3)',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  dietaryTagText: {
+    color: '#2E7D32',
+    fontSize: 9,
+    fontWeight: '500',
+    textTransform: 'capitalize',
   },
 })

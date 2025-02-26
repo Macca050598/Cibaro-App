@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, SafeAreaV
 import React, { useState, useEffect } from 'react'
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import Colors from './../../constants/Colors'
-import { signOut } from 'firebase/auth'
+import { reload, signOut } from 'firebase/auth'
 import { auth, db } from '../../configs/FirebaseConfig'
 import { useRouter } from 'expo-router'
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -197,43 +197,32 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
   const handleSavePreferences = async (selectedPreferences) => {
     try {
       const userRef = doc(db, "users", auth.currentUser.uid);
-      
-      // Get all available options for the current type
       const allOptions = modalType === "dietary" ? availableDietaryPreferences : availableAllergiesPreferences;
-      
-      // Create object with all options set to false by default
       const preferencesObj = allOptions.reduce((acc, pref) => {
         acc[pref.toLowerCase()] = false;
         return acc;
       }, {});
-    
-      // Then set selected ones to true
+
       selectedPreferences.forEach(pref => {
         preferencesObj[pref.toLowerCase()] = true;
       });
-  
+
       await updateDoc(userRef, {
         [modalType === "dietary" ? "dietaryPreferences" : "allergiesPreferences"]: preferencesObj,
       });
 
-          // Navigate and force refresh
-          router.replace('/discover');
-          
-          // Wait a bit for navigation to complete
-          setTimeout(() => {
-            if (window.handlePreferenceUpdate) {
-              window.handlePreferenceUpdate();
-            }
-          }, 10);
+      // After successfully saving:
+      Alert.alert(
+        "Preferences Updated",
+        "Your dietary preferences have been updated. You may need to restart the app for these changes to fully take effect in the Discover section.",
+        [
+          { text: "OK", onPress: () => router.push('/discover') }
+        ]
+      );
 
-  
-      // Update local state
-      setUserData(prev => ({
-        ...prev,
-        [modalType === "dietary" ? "dietaryPreferences" : "allergiesPreferences"]: preferencesObj,
-      }));
     } catch (error) {
-      console.error("Error updating preferences:", error);
+      console.error('Error updating preferences:', error);
+      Alert.alert("Error", "Failed to update preferences");
     }
   };
 

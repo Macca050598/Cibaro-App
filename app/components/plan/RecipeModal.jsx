@@ -5,6 +5,27 @@ import Colors from '../../../constants/Colors';
 export default function RecipeModal({ recipe, visible, onClose }) {
   if (!recipe) return null;
 
+  const renderInstructions = () => {
+    const instructions = recipe.strInstructions || recipe.instructions || '';
+    
+    if (!instructions) {
+      return <Text style={styles.instructionsText}>No instructions available.</Text>;
+    }
+
+    // Convert to string if it's an array
+    const instructionText = Array.isArray(instructions) ? instructions.join(' ') : instructions;
+    
+    return instructionText
+      .split('.')
+      .filter(step => step.trim().length > 0)
+      .map((step, index) => (
+        <View key={index} style={styles.instructionStep}>
+          <Text style={styles.stepNumber}>{index + 1}.</Text>
+          <Text style={styles.stepText}>{step.trim()}</Text>
+        </View>
+      ));
+  };
+
   return (
     <Modal
       visible={visible}
@@ -24,9 +45,9 @@ export default function RecipeModal({ recipe, visible, onClose }) {
           </View>
           <ScrollView style={styles.recipeDetails}>
             <Text style={styles.sectionTitle}>Instructions</Text>
-            <Text style={styles.instructionsText}>
-              {recipe.strInstructions || recipe.instructions || 'No instructions available.'}
-            </Text>
+            <View style={styles.instructionsContainer}>
+              {renderInstructions()}
+            </View>
             
             <Text style={styles.sectionTitle}>Ingredients</Text>
             <View style={styles.ingredientsList}>
@@ -98,6 +119,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: Colors.PRIMARY + '40',
     paddingBottom: 8,
+  },
+  instructionsContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  instructionStep: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  stepNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+    marginRight: 8,
+    width: 25,
+  },
+  stepText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+    flex: 1,
   },
   ingredientsList: {
     backgroundColor: '#f8f8f8',
