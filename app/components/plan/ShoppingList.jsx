@@ -21,7 +21,7 @@ export default function ShoppingList({ items, matchedMeals, onToggleItem, onAddC
     setShowAddItem(false);
   };
 
-  if (!items) {
+  if (!items > 1) {
     return (
       <View>
         <Text style={styles.noItemsText}>No items in shopping list yet</Text>
@@ -102,7 +102,7 @@ export default function ShoppingList({ items, matchedMeals, onToggleItem, onAddC
       {otherItems.ingredients.length > 0 && (
         <View style={styles.recipeSection}>
           <Text style={styles.recipeTitle}>Other Items</Text>
-          {otherItems.ingredients.map((ingredient, index) => (
+          {otherItems?.ingredients.map((ingredient, index) => (
             <View key={index} style={styles.listItem}>
               <View style={styles.ingredientInfo}>
                 <Text style={[styles.itemName, ingredient.checked && styles.checkedItem]}>

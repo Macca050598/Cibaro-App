@@ -240,10 +240,10 @@ export default function Home() {
                 </View>
                 <TouchableOpacity 
                   style={styles.actionButton}
-                  onPress={() => router.push('/plan')}
+                  onPress={() => router.push('/discover')}
                 >
                   <Text style={styles.actionButtonText}>
-                    {matchCount < 7 ? 'Find More Meals' : 'View Matched Meals'}
+                    {matchCount < 7 ? 'Find More Meals' : 'View More Meals'}
                   </Text>
                 </TouchableOpacity>
               </View>

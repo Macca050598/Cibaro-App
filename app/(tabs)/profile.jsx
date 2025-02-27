@@ -7,13 +7,14 @@ import { auth, db } from '../../configs/FirebaseConfig'
 import { useRouter } from 'expo-router'
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Checkbox from 'expo-checkbox'
+import { ActivityIndicator } from 'react-native';
 export default function Profile() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [mealUpdates, setMealUpdates] = useState(true);
   const [userData, setUserData] = useState(null);
   const [houseData, setHouseData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState(null);
 
@@ -90,6 +91,8 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
     onClose();
   };
 
+ 
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
@@ -160,6 +163,7 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
 
   const fetchData = async () => {
     if (!auth.currentUser) return;
+    setIsLoading(true);
 
     try {
       const userRef = doc(db, 'users', auth.currentUser.uid);
@@ -176,11 +180,12 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
             setHouseData(houseSnap.data());
           }
         }
+        setIsLoading(false)
       }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -351,7 +356,13 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
     ],
     code: houseData?.inviteCode
   };
-
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.WHITE }}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+      </SafeAreaView>
+    )
+  }
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.WHITE }}>
       <ScrollView style={styles.container}>

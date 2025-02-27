@@ -9,7 +9,64 @@ import Swiper from 'react-native-deck-swiper'
 import { useRouter } from 'expo-router'
 import { useColorScheme } from 'react-native'
 import { ActivityIndicator } from 'react-native'
-const { width } = Dimensions.get('window')
+import ConfettiCannon from 'react-native-confetti-cannon'
+const { width, height } = Dimensions.get('window')
+
+const MatchAnimation = ({ visible, mealName, onClose }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const confettiRef = useRef(null);
+
+  useEffect(() => {
+    if (visible) {
+      // Trigger confetti
+      confettiRef.current?.start();
+      // Scale animation
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      scaleAnim.setValue(0);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <View style={styles.matchOverlay}>
+      <ConfettiCannon
+        ref={confettiRef}
+        count={100}
+        origin={{x: width/2, y: height}}
+        autoStart={false}
+        fadeOut={true}
+        colors={[Colors.PRIMARY, '#FFD700', '#FF69B4', '#87CEEB']}
+      />
+      <Animated.View 
+        style={[
+          styles.matchCard,
+          {
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
+      >
+        <Text style={styles.matchTitle}>It's a Match! 🎉</Text>
+        <Text style={styles.matchText}>
+          You and your partner both liked{'\n'}
+          <Text style={styles.matchMealName}>{mealName}</Text>
+        </Text>
+        <TouchableOpacity 
+          style={styles.matchButton}
+          onPress={onClose}
+        >
+          <Text style={styles.matchButtonText}>Continue Swiping</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function Discover() {
   const [meals, setMeals] = useState([])
@@ -19,6 +76,8 @@ export default function Discover() {
   const fadeAnim = useRef(new Animated.Value(0)).current
   const router = useRouter()
   const isDarkMode = useColorScheme() === 'dark'
+  const [showMatchAnimation, setShowMatchAnimation] = useState(false)
+  const [matchedMealName, setMatchedMealName] = useState('')
 
   useEffect(() => {
     const initializeData = async () => {
@@ -261,6 +320,8 @@ export default function Discover() {
             }, { merge: true });
 
             setMatchCount(newMatchCount);
+            setMatchedMealName(currentMeal.name);
+            setShowMatchAnimation(true);
 
             if (newMatchCount === 7) {
               Alert.alert(
@@ -481,6 +542,11 @@ export default function Discover() {
           )}
         </Animated.View>
       </View>
+      <MatchAnimation 
+        visible={showMatchAnimation}
+        mealName={matchedMealName}
+        onClose={() => setShowMatchAnimation(false)}
+      />
     </SafeAreaView>
   )
 }
@@ -660,5 +726,58 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '500',
     textTransform: 'capitalize',
+  },
+  matchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  matchCard: {
+    backgroundColor: Colors.WHITE,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    width: width * 0.8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  matchTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+    marginBottom: 16,
+  },
+  matchText: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 24,
+  },
+  matchMealName: {
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+  },
+  matchButton: {
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  matchButtonText: {
+    color: Colors.WHITE,
+    fontSize: 16,
+    fontWeight: '600',
   },
 })

@@ -3,7 +3,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Colors from '../../../constants/Colors';
 
 export default function MatchedMeals({ meals, onMealPress }) {
-  if (!meals) {
+  console.log(meals);
+  if (!meals > 1) {
     return (
       <View style={styles.noMealsContainer}>
         <Text style={styles.noMealsText}>No matched meals yet</Text>
@@ -14,17 +15,17 @@ export default function MatchedMeals({ meals, onMealPress }) {
 
   return (
     <View style={styles.matchedMealsContainer}>
-      {meals.map((meal, index) => (
+      {meals?.map((meal, index) => (
         <TouchableOpacity 
-          key={meal.id} 
+          key={meal?.id} 
           style={styles.mealCard}
-          onPress={() => onMealPress(meal.id)}
+          onPress={() => onMealPress(meal?.id)}
         >
           <View style={styles.mealNumberBadge}>
             <Text style={styles.mealNumberText}>{index + 1}</Text>
           </View>
           <Text style={styles.mealName} numberOfLines={1} ellipsizeMode="tail">
-            {meal.name}
+            {meal?.name}
           </Text>
           <MaterialIcons name="chevron-right" size={20} color={Colors.PRIMARY} />
         </TouchableOpacity>
