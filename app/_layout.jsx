@@ -17,7 +17,6 @@ export default function RootLayout() {
   <Stack screenOptions={{headerShown:false}}>
           <Stack.Screen name="Landing" /> 
           <Stack.Screen name="(tabs)" />
-          
 
    </Stack>
 

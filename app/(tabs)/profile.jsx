@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, SafeAreaView, Modal, Clipboard, Linking, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, SafeAreaView, Modal, Clipboard, Linking, Alert, Image } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons'
 import Colors from './../../constants/Colors'
@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router'
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Checkbox from 'expo-checkbox'
 import { ActivityIndicator } from 'react-native';
+import { registerForPushNotificationsAsync } from '../../utils/notifications';
+
 export default function Profile() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
@@ -369,15 +371,21 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
         <View style={styles.header}>
           <View style={styles.profileInfo}>
           <View style={styles.avatarContainer}>
-
-               <TouchableOpacity 
+            <TouchableOpacity 
               style={styles.avatarContainer}
               onPress={() => router.push('/components/settings')}
             >
               <MaterialIcons name="settings" size={35} color={Colors.PRIMARY} style={styles.settingsButton}/>
             </TouchableOpacity>
+            {userData?.avatarUri ? (
+              <Image 
+                source={{ uri: userData.avatarUri }} 
+                style={styles.avatarImage}
+              />
+            ) : (
               <MaterialIcons name="account-circle" size={80} color={Colors.PRIMARY} />
-            </View>
+            )}
+          </View>
             <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.email}>{user.email}</Text>
           </View>
@@ -493,7 +501,7 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
             <Text style={styles.settingsItemText}>Push Notifications</Text>
             <Switch
               value={notifications}
-              onValueChange={setNotifications}
+              onValueChange={handleNotificationToggle}
               trackColor={{ false: '#767577', true: Colors.PRIMARY + '40' }}
               thumbColor={notifications ? Colors.PRIMARY : '#f4f3f4'}
             />
@@ -868,4 +876,27 @@ const styles = StyleSheet.create({
     left: 150 ,
     top: 0, 
   },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
 })
+
+const handleNotificationToggle = async (value) => {
+  setNotifications(value);
+  if (value) {
+    const token = await registerForPushNotificationsAsync();
+    if (token) {
+      // Store token in user's document
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        pushToken: token
+      });
+    }
+  } else {
+    // Remove token when notifications are disabled
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      pushToken: null
+    });
+  }
+};

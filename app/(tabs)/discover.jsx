@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router'
 import { useColorScheme } from 'react-native'
 import { ActivityIndicator } from 'react-native'
 import ConfettiCannon from 'react-native-confetti-cannon'
+import { sendMealMatchNotification } from '../../utils/notifications'
 const { width, height } = Dimensions.get('window')
 
 const MatchAnimation = ({ visible, mealName, onClose }) => {
@@ -151,12 +152,16 @@ export default function Discover() {
       const allergiesPreferences = userData?.allergiesPreferences || {};
 
       console.log('User Dietary Preferences:', dietaryPreferences);
-
+      console.log('User Allergies Preferences:', allergiesPreferences);
       // Fetch all meals from your new API
       const response = await fetch('https://recipe-api-3isk.onrender.com/api/recipes');
       const recipes = await response.json();
 
-      // console.log('API Response:', recipes); // Debug log
+      // // Add these debug logs before the filter
+      // console.log('Total recipes before filtering:', recipes.length);
+      // console.log('User dietary preferences:', userData.dietaryPreferences);
+      // console.log('User allergies preferences:', userData.allergiesPreferences);
+      // console.log('Sample recipe dietary info:', recipes[0]?.dietaryInfo);
 
       if (!recipes || !Array.isArray(recipes)) {
         console.error('Invalid API response format:', recipes);
@@ -166,46 +171,69 @@ export default function Discover() {
       // Filter and format meals
       const formattedMeals = recipes
         .filter(recipe => {
+          // Debug log for each recipe being filtered
+          // console.log('Checking recipe:', recipe.title);
+          // console.log('Recipe dietary info:', recipe.dietaryInfo);
+          console.log('Recipe allergies info:', recipe.allergiesInfo);
           // Skip if already liked or disliked
           if (userPreferences.liked.includes(recipe._id) || 
               userPreferences.disliked.includes(recipe._id)) {
+            console.log('Recipe already liked/disliked');
             return false;
           }
 
           // Check dietary preferences (mutually exclusive)
-          if (dietaryPreferences.pescatarian && !recipe.dietaryInfo.pescetarian) {
+          if (userData.dietaryPreferences.pescatarian) {
+            const pescatarianKeywords = [
+              'fish', 'salmon', 'cod', 'haddock', 'tuna', 'tilapia', 
+              'sardine', 'mackerel', 'halibut', 'trout', 'seafood', 
+              'shrimp', 'prawn', 'crab', 'lobster', 'mussel', 'clam',
+              'scallop', 'oyster'
+            ];
+            
+            const isPescatarianMeal = 
+              recipe.dietaryInfo.pescetarian || 
+              recipe.dietaryInfo.vegetarian || // Pescatarians can eat vegetarian meals
+              pescatarianKeywords.some(keyword => 
+                recipe.title.toLowerCase().includes(keyword) ||
+                (recipe.description && recipe.description.toLowerCase().includes(keyword)) ||
+                recipe.ingredients.some(ing => 
+                  ing.item.toLowerCase().includes(keyword)
+                )
+              );
+
+            if (!isPescatarianMeal) return false;
+          }
+
+          if (userData.dietaryPreferences.vegetarian && !recipe.dietaryInfo.vegetarian) {
+            console.log('Failed vegetarian check');
             return false;
           }
-          if (dietaryPreferences.vegetarian && !recipe.dietaryInfo.vegetarian) {
-            return false;
-          }
-          if (dietaryPreferences.vegan && !recipe.dietaryInfo.vegan) {
+          if (userData.dietaryPreferences.vegan && !recipe.dietaryInfo.vegan) {
+            console.log('Failed vegan check');
             return false;
           }
 
-          // Check health preferences (can have multiple)
-          if (allergiesPreferences.glutenFree && !recipe.dietaryInfo.glutenFree) {
-            return false;
-          }
-          if (allergiesPreferences.dairyFree && !recipe.dietaryInfo.dairyFree) {
-            return false;
-          }
-          if (allergiesPreferences.nutFree && !recipe.dietaryInfo.nutFree) {
-            return false;
-          }
-          if (allergiesPreferences.lowCarb && !recipe.dietaryInfo.lowCarb) {
-            return false;
-          }
-          if (allergiesPreferences.lowFat && !recipe.dietaryInfo.lowFat) {
-            return false;
-          }
-          if (allergiesPreferences.lowSugar && !recipe.dietaryInfo.lowSugar) {
-            return false;
-          }
-          if (allergiesPreferences.highProtein && !recipe.dietaryInfo.highProtein) {
-            return false;
+          // Check allergy preferences with proper property mapping
+          const allergyMap = {
+            'gluten free': 'glutenFree',
+            'dairy free': 'dairyFree',
+            'nut free': 'nutFree',
+            'low carb': 'lowCarb',
+            'low fat': 'lowFat',
+            'low sugar': 'lowCalorie',
+            'high protein': 'healthy'
+          };
+
+          // Check each allergy preference
+          for (const [userKey, apiKey] of Object.entries(allergyMap)) {
+            if (userData.allergiesPreferences[userKey.toLowerCase()] && !recipe.dietaryInfo[apiKey]) {
+              console.log(`Failed ${userKey} check`);
+              return false;
+            }
           }
 
+          console.log('Recipe passed all checks');
           return true;
         })
         .map(recipe => ({
@@ -223,7 +251,8 @@ export default function Discover() {
             name: ing.item,
             measure: `${ing.amount} ${ing.unit}`
           })),
-          dietaryInfo: recipe.dietaryInfo
+          dietaryInfo: recipe.dietaryInfo,
+          allergiesInfo: recipe.allergiesInfo
         }));
 
       // console.log('Meals after filtering:', formattedMeals.map(m => ({name: m.name, category: m.category})));
@@ -232,7 +261,7 @@ export default function Discover() {
       const shuffledMeals = formattedMeals
         .sort(() => Math.random() - 0.5);
 
-      console.log('Total meals after filtering:', shuffledMeals.length);
+      console.log('Total recipes after filtering:', formattedMeals.length);
       setMeals(shuffledMeals);
       
     } catch (error) {
@@ -324,6 +353,11 @@ export default function Discover() {
             setShowMatchAnimation(true);
 
             if (newMatchCount === 7) {
+              // Send notification to partner
+              if (householdData.users[otherUserField].pushToken) {
+                await sendMealMatchNotification(userData.FirstName);
+              }
+              
               Alert.alert(
                 "Congratulations!",
                 "You've matched on 7 meals! Check your meal plan to see your matches and shopping list.",
@@ -587,7 +621,7 @@ const styles = StyleSheet.create({
   card: {
     marginLeft: 30,
     marginTop: 25,
-    height: 620,
+    height: 640,
     borderRadius: 20,
     backgroundColor: 'white',
     shadowColor: '#000',
@@ -617,7 +651,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },

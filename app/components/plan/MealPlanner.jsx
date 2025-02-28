@@ -33,12 +33,8 @@ export default function MealPlanner({
   // Initialize dates when component mounts
   useEffect(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
-    const diff = today.getDate() - dayOfWeek;
-    const sunday = new Date(today.setDate(diff));
-    
-    setWeekStartDate(formatDate(sunday));
-    setSelectedDay(formatDate(new Date()));
+    setWeekStartDate(formatDate(today));
+    setSelectedDay(formatDate(today));
   }, []);
 
   // Format date to YYYY-MM-DD
@@ -46,13 +42,14 @@ export default function MealPlanner({
     return date.toISOString().split('T')[0];
   };
 
-  // Get the dates for the current week
+  // Get the dates for the current week, starting from today
   const getWeekDates = () => {
     if (!weekStartDate) return [];
     
     const dates = [];
     const startDate = new Date(weekStartDate);
     
+    // Add today and next 6 days
     for (let i = 0; i < 7; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);

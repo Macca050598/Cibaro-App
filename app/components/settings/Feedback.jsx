@@ -1,33 +1,94 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking, Platform } from 'react-native';
 import Colors from './../../../constants/Colors';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function Feedback() {
   const [feedback, setFeedback] = useState('');
 
-  const handleSubmitFeedback = () => {
-    if (feedback) {
-      // Here you would send the feedback to your server or database
-      Alert.alert('Thank you!', 'Your feedback has been submitted.');
-      setFeedback('');
-    } else {
+  const handleSubmitFeedback = async () => {
+    if (!feedback.trim()) {
       Alert.alert('Error', 'Please enter your feedback.');
+      return;
+    }
+
+    const subject = encodeURIComponent('App Feedback');
+    const body = encodeURIComponent(feedback);
+    const emailUrl = `mailto:support@cibaro.com?subject=${subject}&body=${body}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(emailUrl);
+      if (canOpen) {
+        await Linking.openURL(emailUrl);
+        setFeedback(''); // Clear the feedback after sending
+      } else {
+        Alert.alert('Error', 'Unable to open email client');
+      }
+    } catch (error) {
+      console.error('Error opening email:', error);
+      Alert.alert('Error', 'Failed to open email client');
+    }
+  };
+
+  const handleRateApp = async () => {
+    try {
+      // App Store ID would go here
+      const appStoreId = 'YOUR_APP_STORE_ID';
+      const playStoreId = 'YOUR_PLAY_STORE_ID';
+
+      if (Platform.OS === 'ios') {
+        // For iOS
+        await Linking.openURL(`itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`);
+      } else {
+        // For Android
+        await Linking.openURL(`market://details?id=${playStoreId}`);
+      }
+    } catch (error) {
+      console.error('Error opening store:', error);
+      Alert.alert('Error', 'Unable to open app store');
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Feedback</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your feedback"
-        value={feedback}
-        onChangeText={setFeedback}
-        multiline
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSubmitFeedback}>
-        <Text style={styles.buttonText}>Submit Feedback</Text>
-      </TouchableOpacity>
+      
+      <View style={styles.feedbackSection}>
+        <Text style={styles.sectionTitle}>Send us your thoughts</Text>
+        <Text style={styles.description}>
+          We're always looking to improve Cibaro. Your feedback helps us make the app better for everyone.
+        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your feedback"
+          value={feedback}
+          onChangeText={setFeedback}
+          multiline
+          numberOfLines={4}
+        />
+        <TouchableOpacity 
+          style={styles.submitButton} 
+          onPress={handleSubmitFeedback}
+        >
+          <MaterialIcons name="email" size={24} color={Colors.WHITE} />
+          <Text style={styles.buttonText}>Send Feedback</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.ratingSection}>
+        <MaterialIcons name="star" size={40} color={Colors.PRIMARY} />
+        <Text style={styles.ratingTitle}>Loving Cibaro?</Text>
+        <Text style={styles.ratingDescription}>
+          Your feedback on the App Store means the world to us and helps other food lovers discover Cibaro!
+        </Text>
+        <TouchableOpacity 
+          style={styles.rateButton} 
+          onPress={handleRateApp}
+        >
+          <MaterialIcons name="star" size={24} color={Colors.WHITE} />
+          <Text style={styles.buttonText}>Rate on {Platform.OS === 'ios' ? 'App Store' : 'Play Store'}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -45,23 +106,72 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 50,
   },
+  feedbackSection: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.PRIMARY,
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  button: {
-    backgroundColor: Colors.PRIMARY,
+    borderColor: '#ddd',
     padding: 12,
+    marginBottom: 16,
     borderRadius: 8,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  ratingSection: {
+    backgroundColor: '#f8f8f8',
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  ratingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+    marginVertical: 12,
+  },
+  ratingDescription: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  rateButton: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
   },
   buttonText: {
     color: Colors.WHITE,
+    fontSize: 16,
     fontWeight: '600',
   },
 }); 

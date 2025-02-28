@@ -33,11 +33,6 @@ export default function Settings() {
     router.push('./HelpSupport');
   };
 
-  const handleUserReviews = () => {
-    // Navigate to user reviews and ratings page
-    router.push('./UserReviews');
-  };
-
   const handleMealSuggestions = () => {
     // Navigate to meal suggestions page
     router.push('./MealSuggestions');
@@ -64,10 +59,6 @@ export default function Settings() {
             <Text style={styles.optionText}>Help & Support</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option} onPress={handleUserReviews}>
-            <MaterialIcons name="rate-review" size={24} color={Colors.PRIMARY} />
-            <Text style={styles.optionText}>User Reviews & Ratings</Text>
-          </TouchableOpacity>
 
           <TouchableOpacity style={styles.option} onPress={handleMealSuggestions}>
             <MaterialIcons name="restaurant-menu" size={24} color={Colors.PRIMARY} />
