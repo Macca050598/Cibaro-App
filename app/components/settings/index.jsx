@@ -36,13 +36,22 @@ export default function Settings() {
   const handleMealSuggestions = () => {
     // Navigate to meal suggestions page
     router.push('./MealSuggestions');
+    
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? '#000' : Colors.WHITE }}>
       <ScrollView style={styles.container}>
         <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.header}>Settings</Text>
+        <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={Colors.PRIMARY} />
+        </TouchableOpacity>
+        </View>
+          {/* <Text style={styles.headerTitle}>Settings</Text> */}
 
           <TouchableOpacity style={styles.option} onPress={handleEditProfile}>
             <MaterialIcons name="edit" size={24} color={Colors.PRIMARY} />
@@ -83,6 +92,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.PRIMARY,
     marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+    marginBottom: 20,
+
   },
   option: {
     flexDirection: 'row',

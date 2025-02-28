@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; // Import navigation hook
 import { auth, db } from '../../../configs/FirebaseConfig';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, updateProfile } from 'firebase/firestore';
 import { Input } from '@rneui/themed';
 import Checkbox from 'expo-checkbox';
 import Colors from '../../../constants/Colors';
 import { Animated } from 'react-native';
 import { router } from 'expo-router';
-
-
+import EULAModal from '../../components/auth/EULAModal';
 
 export default function UserInfoForm() {
     // const navigation = useNavigation(); // Initialize navigation hook
@@ -41,6 +40,8 @@ export default function UserInfoForm() {
     });
 
     const [dietaryPreferences, setDietaryPreferences] = useState([]);
+    const [eulaVisible, setEulaVisible] = useState(false);
+    const [formDataToSubmit, setFormDataToSubmit] = useState(null);
 
     const handleDietaryPreferenceChange = (preference) => {
         setDietaryPreferences(prev => {
@@ -62,25 +63,69 @@ export default function UserInfoForm() {
         }));
     };
 
-
-
-    const handleSubmit = async () => {
-        if (!formData.uid) {
-            console.error("User UID is missing. Cannot save data.");
+    const handleSubmit = () => {
+        // Validate form data
+        if (!formData.FirstName || !formData.LastName) {
+            Alert.alert('Error', 'Please enter your first and last name');
             return;
         }
+        
+        // Store the form data to submit after EULA acceptance
+        setFormDataToSubmit({
+            firstName: formData.FirstName,
+            lastName: formData.LastName,
+            dietaryPreferences: Array.from(dietaryPreferences),
+            allergiesPreferences: Array.from(Object.values(formData.allergiesPreferences))
+        });
+        
+        // Show EULA modal
+        setEulaVisible(true);
+    };
 
-        try {
-            await setDoc(doc(db, 'users', formData.uid), {
-                ...formData,
-                createdAt: serverTimestamp(),
-                lastActive: serverTimestamp(),
-            });
-
-            router.replace('/auth/householdForm')
-        } catch (error) {
-            console.error("Error adding document: ", error);
+    const handleEulaAccept = async () => {
+        setEulaVisible(false);
+        
+        // Now submit the form data
+        if (formDataToSubmit) {
+            try {
+                setLoading(true);
+                
+                // Your existing submission code here
+                // ...
+                
+                // Update user profile
+                await updateProfile(auth.currentUser, {
+                    displayName: `${formDataToSubmit.firstName} ${formDataToSubmit.lastName}`
+                });
+                
+                // Add user to Firestore
+                await setDoc(doc(db, 'users', auth.currentUser.uid), {
+                    FirstName: formDataToSubmit.firstName,
+                    LastName: formDataToSubmit.lastName,
+                    Email: auth.currentUser.email,
+                    dietaryPreferences: formDataToSubmit.dietaryPreferences,
+                    allergiesPreferences: formDataToSubmit.allergiesPreferences,
+                    createdAt: serverTimestamp(),
+                    eulaAccepted: true, // Add this to record EULA acceptance
+                });
+                
+                router.replace('/auth/householdForm');
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                Alert.alert('Error', 'Failed to submit form. Please try again.');
+            } finally {
+                setLoading(false);
+            }
         }
+    };
+
+    const handleEulaDecline = () => {
+        setEulaVisible(false);
+        Alert.alert(
+            'Terms Declined',
+            'You must accept the Terms of Service to use Cibaro.',
+            [{ text: 'OK' }]
+        );
     };
 
     return (
@@ -160,6 +205,11 @@ export default function UserInfoForm() {
                     <Text style={styles.buttonText}>Submit</Text>
                 </TouchableOpacity>
             </ScrollView>
+            <EULAModal 
+                visible={eulaVisible}
+                onAccept={handleEulaAccept}
+                onDecline={handleEulaDecline}
+            />
         </Animated.View>
     );
 }

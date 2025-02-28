@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import Colors from './../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import { router } from 'expo-router';
 export default function MealSuggestions() {
   const [suggestion, setSuggestion] = useState('');
 
@@ -33,8 +33,15 @@ export default function MealSuggestions() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Meal Suggestions</Text>
-      
+    <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={Colors.PRIMARY} />
+        </TouchableOpacity>
+        </View>
+
       <View style={styles.contentSection}>
         <Text style={styles.description}>
           Have a meal you'd love to see in Cibaro? We're always looking to expand our recipe collection with your favorite dishes!
@@ -79,9 +86,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.PRIMARY,
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+   
     marginTop: 50,
-    paddingHorizontal: 16,
   },
   contentSection: {
     padding: 16,

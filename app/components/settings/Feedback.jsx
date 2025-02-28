@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Linking, Platform } from 'react-native';
 import Colors from './../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export default function Feedback() {
   const [feedback, setFeedback] = useState('');
@@ -51,8 +52,14 @@ export default function Feedback() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Feedback</Text>
-      
+    <View style={styles.header}>
+    <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <MaterialIcons name="arrow-back" size={24} color={Colors.PRIMARY} />
+      </TouchableOpacity>
+    
       <View style={styles.feedbackSection}>
         <Text style={styles.sectionTitle}>Send us your thoughts</Text>
         <Text style={styles.description}>
@@ -89,6 +96,7 @@ export default function Feedback() {
           <Text style={styles.buttonText}>Rate on {Platform.OS === 'ios' ? 'App Store' : 'Play Store'}</Text>
         </TouchableOpacity>
       </View>
+    </View>
     </View>
   );
 }
@@ -173,5 +181,8 @@ const styles = StyleSheet.create({
     color: Colors.WHITE,
     fontSize: 16,
     fontWeight: '600',
+  },
+  backButton: {
+    marginBottom: 20,
   },
 }); 

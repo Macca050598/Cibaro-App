@@ -19,6 +19,7 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState(null);
+  const [recentMeals, setRecentMeals] = useState([]);
 
 
 const availableDietaryPreferences = [
@@ -26,7 +27,7 @@ const availableDietaryPreferences = [
   'Vegetarian', 
   'Pescatarian',
  
-];
+]
 const availableAllergiesPreferences = [ 
   'Gluten Free',
   'Dairy Free',
@@ -179,7 +180,23 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
           const houseRef = doc(db, 'households', userData.householdId);
           const houseSnap = await getDoc(houseRef);
           if (houseSnap.exists()) {
-            setHouseData(houseSnap.data());
+            const houseData = houseSnap.data();
+            setHouseData(houseData);
+            
+            // Get recent meals from matched meals
+            if (houseData.currentSession?.matchedMeals) {
+              // Sort matched meals by date (newest first) and take the first 3
+              const recentMeals = [...houseData.currentSession.matchedMeals]
+                .sort((a, b) => new Date(b.matchedAt || 0) - new Date(a.matchedAt || 0))
+                .slice(0, 3)
+                .map((meal, index) => ({
+                  id: meal.id || index,
+                  name: meal.name,
+                  date: meal.matchedAt ? new Date(meal.matchedAt).toLocaleDateString() : 'Recently added'
+                }));
+              
+              setRecentMeals(recentMeals);
+            }
           }
         }
         setIsLoading(false)
@@ -522,12 +539,24 @@ const PreferencesModal = ({ visible, onClose, type, currentPreferences, onSave }
             <MaterialCommunityIcons name="history" size={24} color={Colors.PRIMARY} />
             <Text style={styles.cardTitle}>Recent Meals</Text>
           </View>
-          {user.recentMeals.map(meal => (
-            <View key={meal.id} style={styles.mealItem}>
-              <Text style={styles.mealName}>{meal.name}</Text>
-              <Text style={styles.mealDate}>{meal.date}</Text>
+          {recentMeals.length > 0 ? (
+            recentMeals.map(meal => (
+              <View key={meal.id} style={styles.mealItem}>
+                <Text style={styles.mealName}>{meal.name}</Text>
+                {/* <Text style={styles.mealDate}>{meal.date}</Text> */}
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyMealsContainer}>
+              <Text style={styles.emptyMealsText}>No recent meals yet</Text>
+              <TouchableOpacity 
+                style={styles.discoverButton}
+                onPress={() => router.push('/discover')}
+              >
+                <Text style={styles.discoverButtonText}>Discover Meals</Text>
+              </TouchableOpacity>
             </View>
-          ))}
+          )}
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -681,6 +710,7 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 16,
     color: '#333',
+    padding: 10,
   },
   mealDate: {
     fontSize: 14,
@@ -873,13 +903,31 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
-    left: 150 ,
+    left: 170 ,
     top: 0, 
   },
   avatarImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
+  },
+  emptyMealsContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  emptyMealsText: {
+    color: '#666',
+    marginBottom: 12,
+  },
+  discoverButton: {
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  discoverButtonText: {
+    color: Colors.WHITE,
+    fontWeight: '500',
   },
 })
 

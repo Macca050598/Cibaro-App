@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import Colors from './../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import { router } from 'expo-router';
 export default function HelpSupport() {
   const [expandedId, setExpandedId] = useState(null);
 
@@ -54,7 +54,13 @@ export default function HelpSupport() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Help & Support</Text>
+    <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={Colors.PRIMARY} />
+        </TouchableOpacity>
       
       <View style={styles.supportSection}>
         <Text style={styles.subHeader}>Need Help?</Text>
@@ -93,6 +99,7 @@ export default function HelpSupport() {
           </TouchableOpacity>
         ))}
       </View>
+      </View>
     </ScrollView>
   );
 }
@@ -107,12 +114,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.PRIMARY,
     marginBottom: 20,
-    marginTop: 50,
+    marginTop: 80,
     paddingHorizontal: 16,
   },
   supportSection: {
-    padding: 16,
+    padding: 0,
     marginBottom: 20,
+    marginTop: 20,
   },
   subHeader: {
     fontSize: 20,

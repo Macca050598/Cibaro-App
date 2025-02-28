@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Modal, FlatList } from 'react-native';
 import { auth, db } from './../../../configs/FirebaseConfig';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { MaterialIcons } from '@expo/vector-icons';
 import Colors from './../../../constants/Colors';
 import { router } from 'expo-router';
+import { deleteUser } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+
 const AVATARS = [
   { id: '1', uri: 'https://api.dicebear.com/7.x/fun-emoji/png?seed=1' },
   { id: '2', uri: 'https://api.dicebear.com/7.x/fun-emoji/png?seed=2' },
@@ -30,6 +33,7 @@ export default function EditProfile({ visible, onClose }) {
     avatarUri: '',
   });
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Fetch current user data
   useEffect(() => {
@@ -87,6 +91,92 @@ export default function EditProfile({ visible, onClose }) {
     }
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setUploading(true);
+              
+              // Delete user data from Firestore
+              if (auth.currentUser) {
+                // If user is in a household, remove them from it
+                if (userData?.householdId) {
+                  const houseRef = doc(db, 'households', userData.householdId);
+                  const houseSnap = await getDoc(houseRef);
+                  
+                  if (houseSnap.exists()) {
+                    const houseData = houseSnap.data();
+                    
+                    // If user is the only one in household, delete the household
+                    if (houseData.users && Object.keys(houseData.users).length <= 1) {
+                      await deleteDoc(houseRef);
+                    } else {
+                      // Otherwise just remove the user from the household
+                      const userField = Object.keys(houseData.users).find(
+                        key => houseData.users[key].id === auth.currentUser.uid
+                      );
+                      
+                      if (userField) {
+                        const updatedUsers = { ...houseData.users };
+                        delete updatedUsers[userField];
+                        await updateDoc(houseRef, { users: updatedUsers });
+                      }
+                    }
+                  }
+                }
+                
+                // Delete user document
+                await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+                
+                // Delete Firebase Auth user
+                await deleteUser(auth.currentUser);
+                
+                Alert.alert(
+                  "Account Deleted",
+                  "Your account has been successfully deleted.",
+                  [{ text: "OK" }]
+                );
+                
+                // Close the modal and navigate to login
+                onClose();
+              }
+            } catch (error) {
+              console.error('Error deleting account:', error);
+              Alert.alert(
+                "Error",
+                "Failed to delete account. You may need to re-authenticate first.",
+                [
+                  { 
+                    text: "OK" 
+                  },
+                  {
+                    text: "Re-authenticate",
+                    onPress: () => {
+                      // Sign out to force re-authentication
+                      signOut(auth);
+                    }
+                  }
+                ]
+              );
+            } finally {
+              setUploading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const AvatarPicker = () => (
     <Modal
       visible={showAvatarPicker}
@@ -126,7 +216,13 @@ export default function EditProfile({ visible, onClose }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Edit Profile</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={Colors.PRIMARY} />
+        </TouchableOpacity>
+      
         {onClose && (
           <TouchableOpacity onPress={onClose}>
             <MaterialIcons name="close" size={24} color={Colors.PRIMARY} />
@@ -195,13 +291,26 @@ export default function EditProfile({ visible, onClose }) {
             secureTextEntry
           />
         </View>
-
         <TouchableOpacity 
           style={styles.saveButton}
           onPress={handleUpdateProfile}
         >
           <Text style={styles.saveButtonText}>Save Changes</Text>
         </TouchableOpacity>
+        <View style={styles.deleteSection}>
+          <Text style={styles.deleteText}>
+            Delete your account and all associated data
+          </Text>
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={handleDeleteAccount}
+          >
+            <MaterialIcons name="delete-forever" size={24} color="white" />
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
+          </TouchableOpacity>
+        </View>
+
+      
       </View>
 
       <AvatarPicker />
@@ -216,17 +325,24 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginTop: 50,
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
   },
-  headerText: {
+  backButton: {
+    padding: 8,
+    width: 40, // Fixed width for balance
+  },
+  headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: Colors.PRIMARY,
+    flex: 1,
+    textAlign: 'center', // Center the text
+    
+
   },
   avatarContainer: {
     alignItems: 'center',
@@ -321,5 +437,29 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  deleteSection: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 20,
+  },
+  deleteText: {
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#FFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 30,
+   
+  },
+  deleteButtonText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 
